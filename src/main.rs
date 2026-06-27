@@ -5,13 +5,11 @@ use egui_plot::PlotPoints;
 
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([500.0, 240.0]),
         ..Default::default()
     };
-    eframe::run_ui_native("Orbit propagator", options, move |ctx, _frame| {
+    eframe::run_ui_native("Latveria", options, move |ctx, _frame| {
         egui::CentralPanel::default().show_inside(ctx, |ui| {
-            ui.heading("Orbit propagator");
-
             let sin: PlotPoints = (0..1000)
                 .map(|i| {
                     let x = i as f64 * 0.01;
