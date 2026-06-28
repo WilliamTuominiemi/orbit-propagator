@@ -45,6 +45,29 @@ fn recover_original_mean_motion_and_semimajor_axis(
     }
 }
 
+fn adjust_atmospheric_drag_for_low_orbit(
+    s: f64,
+    qoms2t: f64,
+    aodp: f64,
+    eo: f64,
+    ae: f64,
+    xkmper: f64,
+) -> (f64, f64) {
+    let mut s4 = s;
+    let mut qoms24 = qoms2t;
+    let perigee = (aodp * (1.0 - eo) - ae) * xkmper;
+    if perigee < 156.0 {
+        s4 = perigee - 78.0;
+        if perigee <= 98.0 {
+            s4 = 20.0;
+        }
+        qoms24 = ((120.0 - s4) * ae / xkmper).powf(4.0);
+        s4 = s4 / xkmper + ae;
+    }
+
+    (s4, qoms24)
+}
+
 fn sgp4(
     mmasmao: mean_motion_and_semimajor_axis_output,
     eo: f64,
@@ -70,17 +93,8 @@ fn sgp4(
         mmasmao.theta2,
         mmasmao.cosio,
     );
-    let mut s4 = s;
-    let mut qoms24 = qoms2t;
-    let perigee = (aodp * (1.0 - eo) - ae) * xkmper;
-    if perigee < 156.0 {
-        s4 = perigee - 78.0;
-        if perigee <= 98.0 {
-            s4 = 20.0;
-        }
-        qoms24 = ((120.0 - s4) * ae / xkmper).powi(4);
-        s4 = s4 / xkmper + ae;
-    }
+
+    let (s4, qoms24) = adjust_atmospheric_drag_for_low_orbit(s, qoms2t, aodp, eo, ae, xkmper);
 
     let pinvsq = 1.0 / (aodp * aodp * betao2 * betao2);
     let tsi = 1.0 / (aodp - s4);
