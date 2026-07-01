@@ -127,12 +127,12 @@ fn sgp4(
     let c5 = 2.0 * coef1 * aodp * betao2 * (1.0 + 2.75 * (etasq + eeta) + eeta * etasq);
     let theta4 = theta2 * theta2;
     let temp1 = 3.0 * ck2 * pinvsq * xnodp;
-    let temp2 = temp1 * ck2 * pinvsq * xnodp;
+    let temp2 = temp1 * ck2 * pinvsq;
     let temp3 = 1.25 * ck4 * pinvsq * pinvsq * xnodp;
 
     let xmdot = xnodp
         + 0.5 * temp1 * betao * x3thm1
-        + 0.625 * temp2 * betao * (13.0 * 78.0 * theta2 + 137.0 * theta4);
+        + 0.0625 * temp2 * betao * (13.0 - 78.0 * theta2 + 137.0 * theta4);
     let x1m5th = 1.0 - 5.0 * theta2;
     let omgdot = -0.5 * temp1 * x1m5th
         + 0.0625 * temp2 * (7.0 - 114.0 * theta2 + 395.0 * theta4)
@@ -141,7 +141,7 @@ fn sgp4(
     let xnodot =
         xhdot1 + (0.5 * temp2 * (4.0 - 19.0 * theta2) + 2.0 * temp3 * (3.0 - 7.0 * theta2)) * cosio;
     let omgcof = bstar * c3 * omegao.cos();
-    let xmcof = tothrd * coef * bstar * ae / eeta;
+    let xmcof = -tothrd * coef * bstar * ae / eeta;
     let xnodcf = 3.5 * betao2 * xhdot1 * c1;
     let t2cof = 1.5 * c1;
     let xlcof = 0.125 * a3ovk2 * sinio * (3.0 + 5.0 * cosio) / (1.0 + cosio);
@@ -195,6 +195,10 @@ mod tests {
     const XINCL: f64 = 72.8435 * DE2RA;
     const EO: f64 = 0.0086731;
     const CK2: f64 = 0.0005413080;
+    const S: f64 = 1.01222928;
+    const QOMS2T: f64 = 0.00000000188027916;
+    const AE: f64 = 1.0;
+    const XKMPER: f64 = 6378.135;
 
     #[test]
     fn test_recover_original_mean_motion_and_semimajor_axis() {
@@ -208,5 +212,14 @@ mod tests {
         assert_eq!(mmasmao.x3thm1, -0.73895561738563);
         assert_eq!(mmasmao.theta2, 0.08701479420478998);
         assert_eq!(mmasmao.cosio, 0.29498270153483575);
+    }
+
+    #[test]
+    fn test_adjust_atmospheric_drag_for_low_orbit() {
+        let aodp = 1.040117522759639; // From previous test, same sample test case
+        let (s4, qoms24) = adjust_atmospheric_drag_for_low_orbit(S, QOMS2T, aodp, EO, AE, XKMPER);
+
+        assert_eq!(s4, S);
+        assert_eq!(qoms24, QOMS2T);
     }
 }
