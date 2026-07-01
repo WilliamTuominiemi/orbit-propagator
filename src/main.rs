@@ -13,6 +13,14 @@ struct mean_motion_and_semimajor_axis_output {
     cosio: f64,
 }
 
+struct c_constants {
+    c1: f64,
+    c2: f64,
+    c3: f64,
+    c4: f64,
+    c5: f64,
+}
+
 fn recover_original_mean_motion_and_semimajor_axis(
     xke: f64,
     xno: f64,
@@ -68,6 +76,48 @@ fn adjust_atmospheric_drag_for_low_orbit(
     (s4, qoms24)
 }
 
+fn calculate_c_constants(
+    eta: f64,
+    coef: f64,
+    xnodp: f64,
+    aodp: f64,
+    eeta: f64,
+    ck2: f64,
+    tsi: f64,
+    x3thm1: f64,
+    bstar: f64,
+    a3ovk2: f64,
+    ae: f64,
+    sinio: f64,
+    eo: f64,
+    betao2: f64,
+    x1mth2: f64,
+    omegao: f64,
+) -> c_constants {
+    let etasq = eta * eta;
+    let psisq = (1.0 - etasq).abs();
+    let coef1 = coef / psisq.powf(3.5);
+
+    let c2 = coef1
+        * xnodp
+        * (aodp * (1.0 + 1.5 * etasq + eeta * (4.0 + etasq))
+            + 0.75 * ck2 * tsi / psisq * x3thm1 * (8.0 + 3.0 * etasq * (8.0 + etasq)));
+    let c1 = bstar * c2;
+    let c3 = coef * tsi * a3ovk2 * xnodp * ae * sinio / eo;
+    let c4 = 2.0
+        * xnodp
+        * coef1
+        * aodp
+        * betao2
+        * (eta * (2.0 + 0.5 * etasq) + eo * (0.5 + 2.0 * etasq)
+            - 2.0 * ck2 * tsi / (aodp * psisq)
+                * (-3.0 * x3thm1 * (1.0 - 2.0 * eeta + etasq * (1.5 - 0.5 * eeta))
+                    + 0.75 * x1mth2 * (2.0 * etasq - eeta * (1.0 + etasq)) * (2.0 * omegao).cos()));
+    let c5 = 2.0 * coef1 * aodp * betao2 * (1.0 + 2.75 * (etasq + eeta) + eeta * etasq);
+
+    c_constants { c1, c2, c3, c4, c5 }
+}
+
 fn sgp4(
     mmasmao: mean_motion_and_semimajor_axis_output,
     eo: f64,
@@ -99,32 +149,18 @@ fn sgp4(
     let pinvsq = 1.0 / (aodp * aodp * betao2 * betao2);
     let tsi = 1.0 / (aodp - s4);
     let eta = aodp * eo * tsi;
-    let etasq = eta * eta;
     let eeta = eo * eta;
 
-    let psisq = (1.0 - etasq).abs();
     let coef = qoms24 * tsi.powf(4.0);
-    let coef1 = coef / psisq.powf(3.5);
-
-    let c2 = coef1
-        * xnodp
-        * (aodp * (1.0 + 1.5 * etasq + eeta * (4.0 + etasq))
-            + 0.75 * ck2 * tsi / psisq * x3thm1 * (8.0 + 3.0 * etasq * (8.0 + etasq)));
-    let c1 = bstar * c2;
     let sinio = xincl.sin();
     let a3ovk2 = -xj3 / ck2 * ae.powf(3.0);
-    let c3 = coef * tsi * a3ovk2 * xnodp * ae * sinio / eo;
     let x1mth2 = 1.0 - theta2;
-    let c4 = 2.0
-        * xnodp
-        * coef1
-        * aodp
-        * betao2
-        * (eta * (2.0 + 0.5 * etasq) + eo * (0.5 + 2.0 * etasq)
-            - 2.0 * ck2 * tsi / (aodp * psisq)
-                * (-3.0 * x3thm1 * (1.0 - 2.0 * eeta + etasq * (1.5 - 0.5 * eeta))
-                    + 0.75 * x1mth2 * (2.0 * etasq - eeta * (1.0 + etasq)) * (2.0 * omegao).cos()));
-    let c5 = 2.0 * coef1 * aodp * betao2 * (1.0 + 2.75 * (etasq + eeta) + eeta * etasq);
+
+    let c_constants = calculate_c_constants(
+        eta, coef, xnodp, aodp, eeta, ck2, tsi, x3thm1, bstar, a3ovk2, ae, sinio, eo, betao2,
+        x1mth2, omegao,
+    );
+
     let theta4 = theta2 * theta2;
     let temp1 = 3.0 * ck2 * pinvsq * xnodp;
     let temp2 = temp1 * ck2 * pinvsq;
@@ -140,23 +176,27 @@ fn sgp4(
     let xhdot1 = -temp1 * cosio;
     let xnodot =
         xhdot1 + (0.5 * temp2 * (4.0 - 19.0 * theta2) + 2.0 * temp3 * (3.0 - 7.0 * theta2)) * cosio;
-    let omgcof = bstar * c3 * omegao.cos();
+    let omgcof = bstar * c_constants.c3 * omegao.cos();
     let xmcof = -tothrd * coef * bstar * ae / eeta;
-    let xnodcf = 3.5 * betao2 * xhdot1 * c1;
-    let t2cof = 1.5 * c1;
+    let xnodcf = 3.5 * betao2 * xhdot1 * c_constants.c1;
+    let t2cof = 1.5 * c_constants.c1;
     let xlcof = 0.125 * a3ovk2 * sinio * (3.0 + 5.0 * cosio) / (1.0 + cosio);
     let aycof = 0.25 * a3ovk2 * sinio;
     let delmo = (1.0 + eta * xmo.cos()).powf(3.0);
     let sinmo = xmo.sin();
     let x7thm1 = 7.0 * theta2 - 1.0;
-    let c1sq = c1 * c1;
+    let c1sq = c_constants.c1 * c_constants.c1;
+
     let d2 = 4.0 * aodp * tsi * c1sq;
-    let temp = d2 * tsi * c1 / 3.0;
+    let temp = d2 * tsi * c_constants.c1 / 3.0;
+
     let d3 = (17.0 * aodp + s4) * temp;
-    let d4 = 0.5 * temp * aodp * tsi * (221.0 * aodp + 31.0 * s4) * c1;
+    let d4 = 0.5 * temp * aodp * tsi * (221.0 * aodp + 31.0 * s4) * c_constants.c1;
+
     let t3cof = d2 + 2.0 * c1sq;
-    let t4cof = 0.25 * (3.0 * d3 + c1 * (12.0 * d2 + 10.0 * c1sq));
-    let t5cof = 0.2 * (3.0 * d4 + 12.0 * c1 * d3 + 6.0 * d2 * d2 + 15.0 * c1sq * (2.0 * d2 + c1sq));
+    let t4cof = 0.25 * (3.0 * d3 + c_constants.c1 * (12.0 * d2 + 10.0 * c1sq));
+    let t5cof = 0.2
+        * (3.0 * d4 + 12.0 * c_constants.c1 * d3 + 6.0 * d2 * d2 + 15.0 * c1sq * (2.0 * d2 + c1sq));
 }
 
 fn main() -> eframe::Result {
@@ -199,6 +239,11 @@ mod tests {
     const QOMS2T: f64 = 0.00000000188027916;
     const AE: f64 = 1.0;
     const XKMPER: f64 = 6378.135;
+    const XJ3: f64 = -0.00000253881;
+    const CK4: f64 = 0.00000062098875;
+    const BSTAR: f64 = 0.000066816;
+    const OMEGAO: f64 = 52.6988 * DE2RA;
+    const XMO: f64 = 110.5714 * DE2RA;
 
     #[test]
     fn test_recover_original_mean_motion_and_semimajor_axis() {
@@ -221,5 +266,35 @@ mod tests {
 
         assert_eq!(s4, S);
         assert_eq!(qoms24, QOMS2T);
+    }
+
+    #[test]
+    fn test_calculate_c_constants() {
+        // From recover_original_mean_motion_and_semimajor_axis function
+        let xnodp = 0.07010615558630984;
+        let aodp = 1.040117522759639;
+        let x3thm1 = -0.73895561738563;
+
+        let eta = 0.3234711976798404;
+        let coef = 0.003108405951369967;
+        let eeta = 0.0028054980445970236;
+        let tsi = 35.85740444884659;
+        let bstar = 0.000066816;
+        let a3ovk2 = 0.004690139440023056;
+        let sinio = 0.9555025932959105;
+        let betao2 = 0.99992477733639;
+        let x1mth2 = 0.91298520579521;
+        let omegao = 0.9197675707989998;
+
+        let c_constants = calculate_c_constants(
+            eta, coef, xnodp, aodp, eeta, CK2, tsi, x3thm1, bstar, a3ovk2, AE, sinio, EO, betao2,
+            x1mth2, omegao,
+        );
+
+        assert_eq!(c_constants.c1, 2.3338044215116538e-8);
+        assert_eq!(c_constants.c2, 0.0003492882575298811);
+        assert_eq!(c_constants.c3, 0.004037532255765166);
+        assert_eq!(c_constants.c4, 0.000377201121554739);
+        assert_eq!(c_constants.c5, 0.012334919304344908);
     }
 }
