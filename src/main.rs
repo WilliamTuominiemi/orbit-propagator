@@ -21,6 +21,12 @@ struct CConstants {
     c5: f64,
 }
 
+struct DConstants {
+    d2: f64,
+    d3: f64,
+    d4: f64,
+}
+
 // Values from NORAD SPACETRACK REPORT NO. 3 physical and mathematical constants
 const CK2: f64 = 0.0005413080;
 const CK4: f64 = 0.00000062098875;
@@ -120,6 +126,15 @@ fn calculate_c_constants(
     CConstants { c1, c2, c3, c4, c5 }
 }
 
+fn calculate_d_constants(aodp: f64, tsi: f64, c1sq: f64, s4: f64, c1: f64) -> DConstants {
+    let d2 = 4.0 * aodp * tsi * c1sq;
+    let temp = d2 * tsi * c1 / 3.0;
+    let d3 = (17.0 * aodp + s4) * temp;
+    let d4 = 0.5 * temp * aodp * tsi * (221.0 * aodp + 31.0 * s4) * c1;
+
+    DConstants { d2, d3, d4 }
+}
+
 fn sgp4(
     mmasmao: MeanMotionAndSemimajorAxisOutput,
     eo: f64,
@@ -181,16 +196,16 @@ fn sgp4(
     let x7thm1 = 7.0 * theta2 - 1.0;
     let c1sq = c_constants.c1 * c_constants.c1;
 
-    let d2 = 4.0 * aodp * tsi * c1sq;
-    let temp = d2 * tsi * c_constants.c1 / 3.0;
+    let d_constants = calculate_d_constants(aodp, tsi, c1sq, s4, c_constants.c1);
 
-    let d3 = (17.0 * aodp + s4) * temp;
-    let d4 = 0.5 * temp * aodp * tsi * (221.0 * aodp + 31.0 * s4) * c_constants.c1;
-
-    let t3cof = d2 + 2.0 * c1sq;
-    let t4cof = 0.25 * (3.0 * d3 + c_constants.c1 * (12.0 * d2 + 10.0 * c1sq));
+    let t3cof = d_constants.d2 + 2.0 * c1sq;
+    let t4cof =
+        0.25 * (3.0 * d_constants.d3 + c_constants.c1 * (12.0 * d_constants.d2 + 10.0 * c1sq));
     let t5cof = 0.2
-        * (3.0 * d4 + 12.0 * c_constants.c1 * d3 + 6.0 * d2 * d2 + 15.0 * c1sq * (2.0 * d2 + c1sq));
+        * (3.0 * d_constants.d4
+            + 12.0 * c_constants.c1 * d_constants.d3
+            + 6.0 * d_constants.d2 * d_constants.d2
+            + 15.0 * c1sq * (2.0 * d_constants.d2 + c1sq));
 }
 
 fn main() -> eframe::Result {
@@ -276,5 +291,20 @@ mod tests {
         assert_eq!(c_constants.c3, 0.004037532255765166);
         assert_eq!(c_constants.c4, 0.000377201121554739);
         assert_eq!(c_constants.c5, 0.012334919304344908);
+    }
+
+    #[test]
+    fn test_calculate_d_constants() {
+        let aodp = 1.040117522759639;
+        let tsi = 35.85740444884659;
+        let c1sq = 0.0000000000000005446643077867345;
+        let s4 = 1.01222928;
+        let c1 = 2.3338044215116538e-8;
+
+        let d_constants = calculate_d_constants(aodp, tsi, c1sq, s4, c1);
+
+        assert_eq!(d_constants.d2, 8.12550142270866e-14);
+        assert_eq!(d_constants.d3, 4.2372075736327043e-19);
+        assert_eq!(d_constants.d4, 2.5770097992217537e-24);
     }
 }
