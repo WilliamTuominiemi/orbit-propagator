@@ -1,4 +1,5 @@
 use eframe::egui;
+use eframe::wgpu::TlasInstance;
 use egui_plot::Line;
 use egui_plot::Plot;
 use egui_plot::PlotPoints;
@@ -136,7 +137,58 @@ fn calculate_d_constants(aodp: f64, tsi: f64, c1sq: f64, s4: f64, c1: f64) -> DC
     DConstants { d2, d3, d4 }
 }
 
+fn update_for_secular_gravity_and_atmospheric_drag(
+    tsince: f64,
+    xmo: f64,
+    xmdot: f64,
+    omegao: f64,
+    omgdot: f64,
+    xnodeo: f64,
+    xnodot: f64,
+    xnodcf: f64,
+    bstar: f64,
+    omgcof: f64,
+    xmcof: f64,
+    eta: f64,
+    aodp: f64,
+    xnodp: f64,
+    eo: f64,
+    delmo: f64,
+    t2cof: f64,
+    t3cof: f64,
+    t4cof: f64,
+    t5cof: f64,
+    c_constants: CConstants,
+    d_constants: DConstants,
+) {
+    let xmdf = xmo * xmdot * tsince;
+    let omgadf = omegao * omgdot * tsince;
+    let xnoddf = xnodeo * xnodot * tsince;
+    let omega = omgadf;
+    let xmp = xmdf;
+    let tsq = tsince * tsince;
+    let xnode = xnoddf + xnodcf * tsq;
+    let mut tempa = 1.0 - c_constants.c1 * tsince;
+    let tempe = bstar * c_constants.c4 * tsince;
+    let mut templ = t2cof * tsq;
+    let delomg = omgcof * tsince;
+    let delm = xmcof * (1.0 + eta * xmdf.cos()).powf(3.0 - delmo);
+    let temp = delomg * delm;
+    let xmp = xmdf + temp;
+    let omega = omgadf - temp;
+    let tcube = tsq * tsince;
+    let tfour = tsince * tcube;
+    tempa = tempa - d_constants.d2 * tsq - d_constants.d3 * tcube - d_constants.d4 * tfour;
+    templ = templ + t3cof * tcube + tfour * (t4cof + tsince * t5cof);
+    let a = aodp * tempa.powf(2.0);
+    let e = eo - tempe;
+    let xl = xmp + omega + xnode + xnodp + templ;
+    let beta = (1.0 - e * e).sqrt();
+    let xn = XKE / a.powf(1.5);
+}
+
 fn sgp4(
+    tsince: f64,
     mmasmao: MeanMotionAndSemimajorAxisOutput,
     eo: f64,
     bstar: f64,
@@ -144,6 +196,7 @@ fn sgp4(
     omegao: f64,
     ck4: f64,
     xmo: f64,
+    xnodeo: f64,
 ) {
     let (xnodp, aodp, betao2, betao, x3thm1, theta2, cosio) = (
         mmasmao.xnodp,
@@ -206,6 +259,31 @@ fn sgp4(
             + 12.0 * c_constants.c1 * d_constants.d3
             + 6.0 * d_constants.d2 * d_constants.d2
             + 15.0 * c1sq * (2.0 * d_constants.d2 + c1sq));
+
+    update_for_secular_gravity_and_atmospheric_drag(
+        tsince,
+        xmo,
+        xmdot,
+        omegao,
+        omgdot,
+        xnodeo,
+        xnodot,
+        xnodcf,
+        bstar,
+        omgcof,
+        xmcof,
+        eta,
+        aodp,
+        xnodp,
+        eo,
+        delmo,
+        t2cof,
+        t3cof,
+        t4cof,
+        t5cof,
+        c_constants,
+        d_constants,
+    );
 }
 
 fn main() -> eframe::Result {
