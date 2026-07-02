@@ -99,9 +99,10 @@ fn calculate_c_constants(
     sinio: f64,
     eo: f64,
     betao2: f64,
-    x1mth2: f64,
+    theta2: f64,
     omegao: f64,
 ) -> CConstants {
+    let x1mth2 = 1.0 - theta2;
     let etasq = eta * eta;
     let psisq = (1.0 - etasq).abs();
     let coef1 = coef / psisq.powf(3.5);
@@ -164,10 +165,9 @@ fn sgp4(
     let coef = qoms24 * tsi.powf(4.0);
     let sinio = xincl.sin();
     let a3ovk2 = -XJ3 / CK2 * AE.powf(3.0);
-    let x1mth2 = 1.0 - theta2;
 
     let c_constants = calculate_c_constants(
-        eta, coef, xnodp, aodp, eeta, tsi, x3thm1, bstar, a3ovk2, sinio, eo, betao2, x1mth2, omegao,
+        eta, coef, xnodp, aodp, eeta, tsi, x3thm1, bstar, a3ovk2, sinio, eo, betao2, theta2, omegao,
     );
 
     let theta4 = theta2 * theta2;
@@ -278,11 +278,11 @@ mod tests {
         let a3ovk2 = 0.004690139440023056;
         let sinio = 0.9555025932959105;
         let betao2 = 0.99992477733639;
-        let x1mth2 = 0.91298520579521;
+        let theta2 = 0.08701479420479;
         let omegao = 0.9197675707989998;
 
         let c_constants = calculate_c_constants(
-            eta, coef, xnodp, aodp, eeta, tsi, x3thm1, bstar, a3ovk2, sinio, EO, betao2, x1mth2,
+            eta, coef, xnodp, aodp, eeta, tsi, x3thm1, bstar, a3ovk2, sinio, EO, betao2, theta2,
             omegao,
         );
 
