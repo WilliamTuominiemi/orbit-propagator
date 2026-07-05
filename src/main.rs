@@ -14,6 +14,14 @@ struct MeanMotionAndSemimajorAxisOutput {
     cosio: f64,
 }
 
+struct SecularGravityAndAtmosphericDragUpdateOutput {
+    e: f64,
+    a: f64,
+    xl: f64,
+    beta: f64,
+    xn: f64,
+}
+#[derive(Debug)]
 struct CConstants {
     c1: f64,
     c2: f64,
@@ -21,7 +29,7 @@ struct CConstants {
     c4: f64,
     c5: f64,
 }
-
+#[derive(Debug)]
 struct DConstants {
     d2: f64,
     d3: f64,
@@ -160,7 +168,7 @@ fn update_for_secular_gravity_and_atmospheric_drag(
     t5cof: f64,
     c_constants: CConstants,
     d_constants: DConstants,
-) {
+) -> SecularGravityAndAtmosphericDragUpdateOutput {
     let xmdf = xmo * xmdot * tsince;
     let omgadf = omegao * omgdot * tsince;
     let xnoddf = xnodeo * xnodot * tsince;
@@ -185,6 +193,8 @@ fn update_for_secular_gravity_and_atmospheric_drag(
     let xl = xmp + omega + xnode + xnodp + templ;
     let beta = (1.0 - e * e).sqrt();
     let xn = XKE / a.powf(1.5);
+
+    SecularGravityAndAtmosphericDragUpdateOutput { e, a, xl, beta, xn }
 }
 
 fn sgp4(
@@ -260,7 +270,7 @@ fn sgp4(
             + 6.0 * d_constants.d2 * d_constants.d2
             + 15.0 * c1sq * (2.0 * d_constants.d2 + c1sq));
 
-    update_for_secular_gravity_and_atmospheric_drag(
+    let sgaaduo = update_for_secular_gravity_and_atmospheric_drag(
         tsince,
         xmo,
         xmdot,
@@ -318,6 +328,8 @@ mod tests {
     const BSTAR: f64 = 0.000066816;
     const OMEGAO: f64 = 52.6988 * DE2RA;
     const XMO: f64 = 110.5714 * DE2RA;
+    const TSINCE: f64 = 0.0;
+    const XNODEO: f64 = 115.9689 * DE2RA;
 
     #[test]
     fn test_recover_original_mean_motion_and_semimajor_axis() {
@@ -352,16 +364,14 @@ mod tests {
         let coef = 0.003108405951369967;
         let eeta = 0.0028054980445970236;
         let tsi = 35.85740444884659;
-        let bstar = 0.000066816;
         let a3ovk2 = 0.004690139440023056;
         let sinio = 0.9555025932959105;
         let betao2 = 0.99992477733639;
         let theta2 = 0.08701479420479;
-        let omegao = 0.9197675707989998;
 
         let c_constants = calculate_c_constants(
-            eta, coef, xnodp, aodp, eeta, tsi, x3thm1, bstar, a3ovk2, sinio, EO, betao2, theta2,
-            omegao,
+            eta, coef, xnodp, aodp, eeta, tsi, x3thm1, BSTAR, a3ovk2, sinio, EO, betao2, theta2,
+            OMEGAO,
         );
 
         assert_eq!(c_constants.c1, 2.3338044215116538e-8);
@@ -384,5 +394,82 @@ mod tests {
         assert_eq!(d_constants.d2, 8.12550142270866e-14);
         assert_eq!(d_constants.d3, 4.2372075736327043e-19);
         assert_eq!(d_constants.d4, 2.5770097992217537e-24);
+    }
+
+    #[test]
+    fn test_update_for_secular_gravity_and_atmospheric_drag() {
+        let xnodp = 0.07010615558630984;
+        let aodp = 1.040117522759639;
+        let eta = 0.3234711976798404;
+        let xmdot = 0.07006729335201786;
+        let omgdot = -0.00002971792465285666;
+        let xnodot = -0.00003096311254169127;
+        let xnodcf = -0.000000000002535821899421168;
+        let omgcof = 0.00000016348304905484922;
+        let xmcof = -0.000049353388663657485;
+        let delmo = 0.6963086765241224;
+        let t2cof = 0.00000003500706632267481;
+        let t3cof = 0.00000000000008234434284266006;
+        let t4cof = 0.00000000000000000032351134586589164;
+        let t5cof = 0.0000000000000000000000015781283156000947;
+
+        let c_constants = CConstants {
+            c1: 2.3338044215116538e-8,
+            c2: 0.0003492882575298811,
+            c3: 0.004037532255765166,
+            c4: 0.000377201121554739,
+            c5: 0.012334919304344908,
+        };
+        let d_constants = DConstants {
+            d2: 8.12550142270866e-14,
+            d3: 4.2372075736327043e-19,
+            d4: 2.5770097992217537e-24,
+        };
+
+        let sgaaduo = update_for_secular_gravity_and_atmospheric_drag(
+            TSINCE,
+            XMO,
+            xmdot,
+            OMEGAO,
+            omgdot,
+            XNODEO,
+            xnodot,
+            xnodcf,
+            BSTAR,
+            omgcof,
+            xmcof,
+            eta,
+            aodp,
+            xnodp,
+            EO,
+            delmo,
+            t2cof,
+            t3cof,
+            t4cof,
+            t5cof,
+            c_constants,
+            d_constants,
+        );
+
+        assert_eq!(sgaaduo.a, 1.040117522759639);
+        assert_eq!(sgaaduo.e, 0.0086731);
+        assert_eq!(sgaaduo.xl, 0.07010615558630984);
+        assert_eq!(sgaaduo.beta, 0.9999623879608622);
+        assert_eq!(sgaaduo.xn, 0.07010615556528188);
+    }
+
+    #[test]
+    fn test_sgp4() {
+        sgp4(
+            TSINCE,
+            recover_original_mean_motion_and_semimajor_axis(XNO, XINCL, EO),
+            EO,
+            BSTAR,
+            XINCL,
+            OMEGAO,
+            CK4,
+            XMO,
+            XNODEO,
+        );
     }
 }
