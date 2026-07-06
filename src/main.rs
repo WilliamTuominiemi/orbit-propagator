@@ -197,6 +197,22 @@ fn update_for_secular_gravity_and_atmospheric_drag(
     SecularGravityAndAtmosphericDragUpdateOutput { e, a, xl, beta, xn }
 }
 
+fn long_period_periodics(
+    sgaaduo: SecularGravityAndAtmosphericDragUpdateOutput,
+    omega: f64,
+    xlcof: f64,
+    aycof: f64,
+) -> (f64, f64) {
+    let axn = sgaaduo.e * omega.cos();
+    let temp = 1.0 / (sgaaduo.a * sgaaduo.beta * sgaaduo.beta);
+    let xll = temp * xlcof * axn;
+    let aynl = temp * aycof;
+    let xlt = sgaaduo.xl + xll;
+    let ayn = sgaaduo.e * omega.sin() + aynl;
+
+    (xlt, ayn)
+}
+
 fn sgp4(
     tsince: f64,
     mmasmao: MeanMotionAndSemimajorAxisOutput,
@@ -294,6 +310,8 @@ fn sgp4(
         c_constants,
         d_constants,
     );
+
+    let (xlt, ayn) = long_period_periodics(sgaaduo, omegao, xlcof, aycof);
 }
 
 fn main() -> eframe::Result {
@@ -451,11 +469,30 @@ mod tests {
             d_constants,
         );
 
-        assert_eq!(sgaaduo.a, 1.040117522759639);
         assert_eq!(sgaaduo.e, 0.0086731);
+        assert_eq!(sgaaduo.a, 1.040117522759639);
         assert_eq!(sgaaduo.xl, 0.07010615558630984);
         assert_eq!(sgaaduo.beta, 0.9999623879608622);
         assert_eq!(sgaaduo.xn, 0.07010615556528188);
+    }
+
+    #[test]
+    fn test_long_period_periodics() {
+        let sgaaduo = SecularGravityAndAtmosphericDragUpdateOutput {
+            e: 0.0086731,
+            a: 1.040117522759639,
+            xl: 0.07010615558630984,
+            beta: 0.9999623879608622,
+            xn: 0.07010615556528188,
+        };
+
+        let xlcof = 0.001935745758076399;
+        let aycof = 0.0011203600994653647;
+
+        let (xlt, ayn) = long_period_periodics(sgaaduo, OMEGAO, xlcof, aycof);
+
+        assert_eq!(xlt, 0.07011593807103583);
+        assert_eq!(ayn, 0.007976339600468509);
     }
 
     #[test]
