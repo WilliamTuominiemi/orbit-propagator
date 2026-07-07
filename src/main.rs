@@ -213,6 +213,15 @@ fn long_period_periodics(
     (xlt, ayn)
 }
 
+fn fmod2p(x: f64) -> f64 {
+    let rev = x / TWOPI;
+    let mut temp = x - (rev.trunc()) * TWOPI;
+    if temp < 0.0 {
+        temp += TWOPI;
+    }
+    temp
+}
+
 fn sgp4(
     tsince: f64,
     mmasmao: MeanMotionAndSemimajorAxisOutput,
