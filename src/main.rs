@@ -222,6 +222,28 @@ fn fmod2p(x: f64) -> f64 {
     temp
 }
 
+fn keplers_equation(xlt: f64, xnode: f64, axn: f64, ayn: f64, e6a: f64) {
+    let capu = fmod2p(xlt - xnode);
+    let mut temp2 = capu;
+    let mut epw = temp2;
+
+    for _ in 0..10 {
+        let sinepw = temp2.sin();
+        let cosepw = temp2.cos();
+        let temp3 = axn * sinepw;
+        let temp4 = ayn * cosepw;
+        let temp5 = axn * cosepw;
+        let temp6 = ayn * sinepw;
+        epw = (capu - temp4 + temp3 - temp2) / (1.0 - temp5 - temp6) + temp2;
+
+        if (epw - temp2).abs() <= e6a {
+            break;
+        }
+
+        temp2 = epw;
+    }
+}
+
 fn sgp4(
     tsince: f64,
     mmasmao: MeanMotionAndSemimajorAxisOutput,
