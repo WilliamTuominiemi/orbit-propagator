@@ -30,6 +30,15 @@ struct KeplersEquationOutput {
     temp5: f64,
     temp6: f64,
 }
+
+struct ShortPeriodicsOutput {
+    rk: f64,
+    uk: f64,
+    xnodek: f64,
+    xinck: f64,
+    rdotk: f64,
+    rfdotk: f64,
+}
 #[derive(Debug)]
 struct CConstants {
     c1: f64,
@@ -227,6 +236,42 @@ fn long_period_periodics(
     let ayn = sgaaduo.e * omega.sin() + aynl;
 
     (xlt, ayn, axn)
+}
+
+fn short_periodics(
+    r: f64,
+    temp2: f64,
+    betal: f64,
+    x3thm1: f64,
+    temp1: f64,
+    x1mth2: f64,
+    cos2u: f64,
+    u: f64,
+    x7thm1: f64,
+    sin2u: f64,
+    xnode: f64,
+    cosio: f64,
+    sinio: f64,
+    xincl: f64,
+    rdot: f64,
+    xn: f64,
+    rfdot: f64,
+) -> ShortPeriodicsOutput {
+    let rk = r * (1.0 - 1.5 * temp2 * betal * x3thm1) + 0.5 * temp1 * x1mth2 * cos2u;
+    let uk = u - 0.25 * temp2 * x7thm1 * sin2u;
+    let xnodek = xnode + 1.5 * temp2 * cosio * sin2u;
+    let xinck = xincl + 1.5 * temp2 * cosio * sinio * cos2u;
+    let rdotk = rdot - xn * temp1 * x1mth2 * sin2u;
+    let rfdotk = rfdot + xn * temp1 * (x1mth2 * cos2u + 1.5 * x3thm1);
+
+    ShortPeriodicsOutput {
+        rk,
+        uk,
+        xnodek,
+        xinck,
+        rdotk,
+        rfdotk,
+    }
 }
 
 fn fmod2p(x: f64) -> f64 {
