@@ -20,6 +20,15 @@ struct SecularGravityAndAtmosphericDragUpdateOutput {
     xl: f64,
     beta: f64,
     xn: f64,
+    xnode: f64,
+}
+
+struct KeplersEquationOutput {
+    temp2: f64,
+    temp3: f64,
+    temp4: f64,
+    temp5: f64,
+    temp6: f64,
 }
 #[derive(Debug)]
 struct CConstants {
@@ -194,15 +203,22 @@ fn update_for_secular_gravity_and_atmospheric_drag(
     let beta = (1.0 - e * e).sqrt();
     let xn = XKE / a.powf(1.5);
 
-    SecularGravityAndAtmosphericDragUpdateOutput { e, a, xl, beta, xn }
+    SecularGravityAndAtmosphericDragUpdateOutput {
+        e,
+        a,
+        xl,
+        beta,
+        xn,
+        xnode,
+    }
 }
 
 fn long_period_periodics(
-    sgaaduo: SecularGravityAndAtmosphericDragUpdateOutput,
+    sgaaduo: &SecularGravityAndAtmosphericDragUpdateOutput,
     omega: f64,
     xlcof: f64,
     aycof: f64,
-) -> (f64, f64) {
+) -> (f64, f64, f64) {
     let axn = sgaaduo.e * omega.cos();
     let temp = 1.0 / (sgaaduo.a * sgaaduo.beta * sgaaduo.beta);
     let xll = temp * xlcof * axn;
@@ -210,7 +226,7 @@ fn long_period_periodics(
     let xlt = sgaaduo.xl + xll;
     let ayn = sgaaduo.e * omega.sin() + aynl;
 
-    (xlt, ayn)
+    (xlt, ayn, axn)
 }
 
 fn fmod2p(x: f64) -> f64 {
@@ -222,18 +238,22 @@ fn fmod2p(x: f64) -> f64 {
     temp
 }
 
-fn keplers_equation(xlt: f64, xnode: f64, axn: f64, ayn: f64, e6a: f64) {
+fn keplers_equation(xlt: f64, xnode: f64, axn: f64, ayn: f64, e6a: f64) -> KeplersEquationOutput {
     let capu = fmod2p(xlt - xnode);
     let mut temp2 = capu;
+    let mut temp3 = 0.0;
+    let mut temp4 = 0.0;
+    let mut temp5 = 0.0;
+    let mut temp6 = 0.0;
     let mut epw = temp2;
 
     for _ in 0..10 {
         let sinepw = temp2.sin();
         let cosepw = temp2.cos();
-        let temp3 = axn * sinepw;
-        let temp4 = ayn * cosepw;
-        let temp5 = axn * cosepw;
-        let temp6 = ayn * sinepw;
+        temp3 = axn * sinepw;
+        temp4 = ayn * cosepw;
+        temp5 = axn * cosepw;
+        temp6 = ayn * sinepw;
         epw = (capu - temp4 + temp3 - temp2) / (1.0 - temp5 - temp6) + temp2;
 
         if (epw - temp2).abs() <= e6a {
@@ -241,6 +261,14 @@ fn keplers_equation(xlt: f64, xnode: f64, axn: f64, ayn: f64, e6a: f64) {
         }
 
         temp2 = epw;
+    }
+
+    KeplersEquationOutput {
+        temp2,
+        temp3,
+        temp4,
+        temp5,
+        temp6,
     }
 }
 
@@ -254,6 +282,7 @@ fn sgp4(
     ck4: f64,
     xmo: f64,
     xnodeo: f64,
+    e6a: f64,
 ) {
     let (xnodp, aodp, betao2, betao, x3thm1, theta2, cosio) = (
         mmasmao.xnodp,
@@ -342,7 +371,9 @@ fn sgp4(
         d_constants,
     );
 
-    let (xlt, ayn) = long_period_periodics(sgaaduo, omegao, xlcof, aycof);
+    let (xlt, ayn, axn) = long_period_periodics(&sgaaduo, omegao, xlcof, aycof);
+
+    keplers_equation(xlt, sgaaduo.xnode, axn, ayn, e6a);
 }
 
 fn main() -> eframe::Result {
@@ -379,6 +410,7 @@ mod tests {
     const XMO: f64 = 110.5714 * DE2RA;
     const TSINCE: f64 = 0.0;
     const XNODEO: f64 = 115.9689 * DE2RA;
+    const E6A: f64 = 0.000001;
 
     #[test]
     fn test_recover_original_mean_motion_and_semimajor_axis() {
@@ -515,15 +547,33 @@ mod tests {
             xl: 0.07010615558630984,
             beta: 0.9999623879608622,
             xn: 0.07010615556528188,
+            xnode: 0.0,
         };
 
         let xlcof = 0.001935745758076399;
         let aycof = 0.0011203600994653647;
 
-        let (xlt, ayn) = long_period_periodics(sgaaduo, OMEGAO, xlcof, aycof);
+        let (xlt, ayn, axn) = long_period_periodics(&sgaaduo, OMEGAO, xlcof, aycof);
 
         assert_eq!(xlt, 0.07011593807103583);
         assert_eq!(ayn, 0.007976339600468509);
+        assert_eq!(axn, 0.005255942497390392);
+    }
+
+    #[test]
+    fn test_keplers_equation() {
+        let xlt = 0.07011593807103583;
+        let xnode = 0.0;
+        let axn = 0.005255942497390392;
+        let ayn = 0.007976339600468509;
+
+        let keplers_equation_output = keplers_equation(xlt, xnode, axn, ayn, E6A);
+
+        assert_eq!(keplers_equation_output.temp2, 0.06248313642895434);
+        assert_eq!(keplers_equation_output.temp3, 0.0003281941220562471);
+        assert_eq!(keplers_equation_output.temp4, 0.007960774282990234);
+        assert_eq!(keplers_equation_output.temp5, 0.0052456858611741215);
+        assert_eq!(keplers_equation_output.temp6, 0.0004980624833125527);
     }
 
     #[test]
@@ -538,6 +588,7 @@ mod tests {
             CK4,
             XMO,
             XNODEO,
+            E6A,
         );
     }
 }
