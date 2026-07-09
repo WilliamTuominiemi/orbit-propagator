@@ -33,6 +33,7 @@ struct KeplersEquationOutput {
     cosepw: f64,
 }
 
+#[derive(Debug)]
 struct ShortPeriodicsOutput {
     rk: f64,
     uk: f64,
@@ -56,6 +57,7 @@ struct DConstants {
     d4: f64,
 }
 
+#[derive(Debug)]
 struct OrientationVectors {
     ux: f64,
     uy: f64,
@@ -63,6 +65,16 @@ struct OrientationVectors {
     vx: f64,
     vy: f64,
     vz: f64,
+}
+
+#[derive(Debug, PartialEq)]
+struct PositionAndVelocity {
+    x: f64,
+    y: f64,
+    z: f64,
+    xdot: f64,
+    ydot: f64,
+    zdot: f64,
 }
 
 // Values from NORAD SPACETRACK REPORT NO. 3 physical and mathematical constants
@@ -394,6 +406,27 @@ fn calculate_orientation_vectors(uk: f64, xinck: f64, xnodek: f64) -> Orientatio
     }
 }
 
+fn calculate_position_and_velocity(
+    ov: OrientationVectors,
+    spo: ShortPeriodicsOutput,
+) -> PositionAndVelocity {
+    let x = spo.rk * ov.ux;
+    let y = spo.rk * ov.uy;
+    let z = spo.rk * ov.uz;
+    let xdot = spo.rdotk * ov.ux + spo.rfdotk * ov.vx;
+    let ydot = spo.rdotk * ov.uy + spo.rfdotk * ov.vy;
+    let zdot = spo.rdotk * ov.uz + spo.rfdotk * ov.vz;
+
+    PositionAndVelocity {
+        x,
+        y,
+        z,
+        xdot,
+        ydot,
+        zdot,
+    }
+}
+
 fn sgp4(
     tsince: f64,
     mmasmao: MeanMotionAndSemimajorAxisOutput,
@@ -522,6 +555,10 @@ fn sgp4(
     );
 
     let ov = calculate_orientation_vectors(spo.uk, spo.xinck, spo.xnodek);
+
+    println!("{:?}", ov);
+    println!("{:?}", spo);
+    let pav = calculate_position_and_velocity(ov, spo);
 }
 
 fn main() -> eframe::Result {
@@ -548,6 +585,7 @@ fn main() -> eframe::Result {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use approx::assert_abs_diff_eq;
 
     // Values are NORAD SPACETRACK REPORT NO. 3 SGP4 sample test case input parameters
     const XNO: f64 = 16.05824518 * (TWOPI / XMNPDA);
@@ -559,6 +597,18 @@ mod tests {
     const TSINCE: f64 = 0.0;
     const XNODEO: f64 = 115.9689 * DE2RA;
     const E6A: f64 = 0.000001;
+
+    // Values from SGP4 sample test case output values
+    const POSITION_AND_VELOCITY_0: PositionAndVelocity = PositionAndVelocity {
+        x: 2328.97048951,
+        y: -5995.22076416,
+        z: 1719.97067261,
+        xdot: 2.91207230,
+        ydot: -0.98341546,
+        zdot: -7.09081703,
+    };
+
+    const TOLERANCE: f64 = 1e-1;
 
     #[test]
     fn test_recover_original_mean_motion_and_semimajor_axis() {
@@ -722,6 +772,34 @@ mod tests {
         assert_eq!(keplers_equation_output.temp4, 0.007960774282990234);
         assert_eq!(keplers_equation_output.temp5, 0.0052456858611741215);
         assert_eq!(keplers_equation_output.temp6, 0.0004980624833125527);
+    }
+
+    #[test]
+    fn test_calculate_position_and_velocity() {
+        let ov = OrientationVectors {
+            ux: 0.3498156642735742,
+            uy: -0.9004930819129486,
+            uz: 0.2583427670172551,
+            vx: 0.373545155612984,
+            vy: -0.118819129760556,
+            vz: -0.920099684696985,
+        };
+        let spo = ShortPeriodicsOutput {
+            rk: 6657.707913821422,
+            uk: 0.0,
+            xnodek: 0.0,
+            xinck: 0.0,
+            rdotk: 0.072386220624613,
+            rfdotk: 7.727982754483756,
+        };
+        let pav = calculate_position_and_velocity(ov, spo);
+
+        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.x, pav.x, epsilon = TOLERANCE);
+        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.y, pav.y, epsilon = TOLERANCE);
+        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.z, pav.z, epsilon = TOLERANCE);
+        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.xdot, pav.xdot, epsilon = TOLERANCE);
+        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.ydot, pav.ydot, epsilon = TOLERANCE);
+        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.zdot, pav.zdot, epsilon = TOLERANCE);
     }
 
     #[test]
