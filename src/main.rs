@@ -14,6 +14,7 @@ struct MeanMotionAndSemimajorAxisOutput {
     cosio: f64,
 }
 
+#[derive(Debug)]
 struct SecularGravityAndAtmosphericDragUpdateOutput {
     e: f64,
     a: f64,
@@ -21,6 +22,7 @@ struct SecularGravityAndAtmosphericDragUpdateOutput {
     beta: f64,
     xn: f64,
     xnode: f64,
+    omega: f64,
 }
 
 struct KeplersEquationOutput {
@@ -33,7 +35,7 @@ struct KeplersEquationOutput {
     cosepw: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct ShortPeriodicsOutput {
     rk: f64,
     uk: f64,
@@ -57,7 +59,7 @@ struct DConstants {
     d4: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct OrientationVectors {
     ux: f64,
     uy: f64,
@@ -203,6 +205,7 @@ fn update_for_secular_gravity_and_atmospheric_drag(
     xnodp: f64,
     eo: f64,
     delmo: f64,
+    sinmo: f64,
     t2cof: f64,
     t3cof: f64,
     t4cof: f64,
@@ -210,28 +213,29 @@ fn update_for_secular_gravity_and_atmospheric_drag(
     c_constants: CConstants,
     d_constants: DConstants,
 ) -> SecularGravityAndAtmosphericDragUpdateOutput {
-    let xmdf = xmo * xmdot * tsince;
-    let omgadf = omegao * omgdot * tsince;
-    let xnoddf = xnodeo * xnodot * tsince;
+    let xmdf = xmo + xmdot * tsince;
+    let omgadf = omegao + omgdot * tsince;
+    let xnoddf = xnodeo + xnodot * tsince;
     let omega = omgadf;
     let xmp = xmdf;
     let tsq = tsince * tsince;
     let xnode = xnoddf + xnodcf * tsq;
     let mut tempa = 1.0 - c_constants.c1 * tsince;
-    let tempe = bstar * c_constants.c4 * tsince;
+    let mut tempe = bstar * c_constants.c4 * tsince;
     let mut templ = t2cof * tsq;
     let delomg = omgcof * tsince;
-    let delm = xmcof * (1.0 + eta * xmdf.cos()).powf(3.0 - delmo);
-    let temp = delomg * delm;
+    let delm = xmcof * ((1.0 + eta * xmdf.cos()).powf(3.0) - delmo);
+    let temp = delomg + delm;
     let xmp = xmdf + temp;
     let omega = omgadf - temp;
     let tcube = tsq * tsince;
     let tfour = tsince * tcube;
     tempa = tempa - d_constants.d2 * tsq - d_constants.d3 * tcube - d_constants.d4 * tfour;
+    tempe = tempe + bstar * c_constants.c5 * (xmp.sin() - sinmo);
     templ = templ + t3cof * tcube + tfour * (t4cof + tsince * t5cof);
     let a = aodp * tempa.powf(2.0);
     let e = eo - tempe;
-    let xl = xmp + omega + xnode + xnodp + templ;
+    let xl = xmp + omega + xnode + xnodp * templ;
     let beta = (1.0 - e * e).sqrt();
     let xn = XKE / a.powf(1.5);
 
@@ -242,21 +246,21 @@ fn update_for_secular_gravity_and_atmospheric_drag(
         beta,
         xn,
         xnode,
+        omega,
     }
 }
 
 fn long_period_periodics(
     sgaaduo: &SecularGravityAndAtmosphericDragUpdateOutput,
-    omega: f64,
     xlcof: f64,
     aycof: f64,
 ) -> (f64, f64, f64) {
-    let axn = sgaaduo.e * omega.cos();
+    let axn = sgaaduo.e * sgaaduo.omega.cos();
     let temp = 1.0 / (sgaaduo.a * sgaaduo.beta * sgaaduo.beta);
     let xll = temp * xlcof * axn;
     let aynl = temp * aycof;
     let xlt = sgaaduo.xl + xll;
-    let ayn = sgaaduo.e * omega.sin() + aynl;
+    let ayn = sgaaduo.e * sgaaduo.omega.sin() + aynl;
 
     (xlt, ayn, axn)
 }
@@ -280,12 +284,12 @@ fn short_periodics(
     xn: f64,
     rfdot: f64,
 ) -> ShortPeriodicsOutput {
-    let rk = r * (1.0 - 1.5 * temp2 * betal * x3thm1) + 0.5 * temp1 * x1mth2 * cos2u;
+    let rk = (r * (1.0 - 1.5 * temp2 * betal * x3thm1) + 0.5 * temp1 * x1mth2 * cos2u) * XKMPER;
     let uk = u - 0.25 * temp2 * x7thm1 * sin2u;
     let xnodek = xnode + 1.5 * temp2 * cosio * sin2u;
     let xinck = xincl + 1.5 * temp2 * cosio * sinio * cos2u;
-    let rdotk = rdot - xn * temp1 * x1mth2 * sin2u;
-    let rfdotk = rfdot + xn * temp1 * (x1mth2 * cos2u + 1.5 * x3thm1);
+    let rdotk = (rdot - xn * temp1 * x1mth2 * sin2u) * XKMPER / 60.0;
+    let rfdotk = (rfdot + xn * temp1 * (x1mth2 * cos2u + 1.5 * x3thm1)) * XKMPER / 60.0;
 
     ShortPeriodicsOutput {
         rk,
@@ -363,6 +367,7 @@ fn short_period_prelimenary_quantities(
     let temp = 1.0 - elsq;
     let pl = a * temp;
     let r = a * (1.0 - ecose);
+    let temp1 = 1.0 / r;
     let rdot = XKE * a.sqrt() * esine * temp1;
     let rfdot = XKE * pl.sqrt() * temp1;
     let mut temp2 = a * temp1;
@@ -372,7 +377,7 @@ fn short_period_prelimenary_quantities(
     let sinu = temp2 * (keo.sinepw - ayn - axn * esine * temp3);
     let u = actan(sinu, cosu);
     let sin2u = 2.0 * sinu * cosu;
-    let cos2u = 20. * cosu * cosu - 1.0;
+    let cos2u = 2.0 * cosu * cosu - 1.0;
     let temp = 1.0 / pl;
     let temp1 = CK2 * temp;
     temp2 = temp1 * temp;
@@ -438,7 +443,7 @@ fn sgp4(
     xmo: f64,
     xnodeo: f64,
     e6a: f64,
-) {
+) -> PositionAndVelocity {
     let (xnodp, aodp, betao2, betao, x3thm1, theta2, cosio) = (
         mmasmao.xnodp,
         mmasmao.aodp,
@@ -519,6 +524,7 @@ fn sgp4(
         xnodp,
         eo,
         delmo,
+        sinmo,
         t2cof,
         t3cof,
         t4cof,
@@ -527,7 +533,7 @@ fn sgp4(
         d_constants,
     );
 
-    let (xlt, ayn, axn) = long_period_periodics(&sgaaduo, omegao, xlcof, aycof);
+    let (xlt, ayn, axn) = long_period_periodics(&sgaaduo, xlcof, aycof);
 
     let keo = keplers_equation(xlt, sgaaduo.xnode, axn, ayn, e6a);
 
@@ -556,9 +562,7 @@ fn sgp4(
 
     let ov = calculate_orientation_vectors(spo.uk, spo.xinck, spo.xnodek);
 
-    println!("{:?}", ov);
-    println!("{:?}", spo);
-    let pav = calculate_position_and_velocity(ov, spo);
+    calculate_position_and_velocity(ov, spo)
 }
 
 fn main() -> eframe::Result {
@@ -608,7 +612,7 @@ mod tests {
         zdot: -7.09081703,
     };
 
-    const TOLERANCE: f64 = 1e-1;
+    const TOLERANCE: f64 = 1e-3;
 
     #[test]
     fn test_recover_original_mean_motion_and_semimajor_axis() {
@@ -687,6 +691,7 @@ mod tests {
         let omgcof = 0.00000016348304905484922;
         let xmcof = -0.000049353388663657485;
         let delmo = 0.6963086765241224;
+        let sinmo = 0.9362350466329594;
         let t2cof = 0.00000003500706632267481;
         let t3cof = 0.00000000000008234434284266006;
         let t4cof = 0.00000000000000000032351134586589164;
@@ -722,6 +727,7 @@ mod tests {
             xnodp,
             EO,
             delmo,
+            sinmo,
             t2cof,
             t3cof,
             t4cof,
@@ -732,7 +738,7 @@ mod tests {
 
         assert_eq!(sgaaduo.e, 0.0086731);
         assert_eq!(sgaaduo.a, 1.040117522759639);
-        assert_eq!(sgaaduo.xl, 0.07010615558630984);
+        assert_eq!(sgaaduo.xl, 4.873641689736749);
         assert_eq!(sgaaduo.beta, 0.9999623879608622);
         assert_eq!(sgaaduo.xn, 0.07010615556528188);
     }
@@ -746,16 +752,17 @@ mod tests {
             beta: 0.9999623879608622,
             xn: 0.07010615556528188,
             xnode: 0.0,
+            omega: 1.6161106125158646,
         };
 
         let xlcof = 0.001935745758076399;
         let aycof = 0.0011203600994653647;
 
-        let (xlt, ayn, axn) = long_period_periodics(&sgaaduo, OMEGAO, xlcof, aycof);
+        let (xlt, ayn, axn) = long_period_periodics(&sgaaduo, xlcof, aycof);
 
-        assert_eq!(xlt, 0.07011593807103583);
-        assert_eq!(ayn, 0.007976339600468509);
-        assert_eq!(axn, 0.005255942497390392);
+        assert_eq!(xlt, 0.07010542434717408);
+        assert_eq!(ayn, 0.009741425556977382);
+        assert_eq!(axn, -0.0003928808433640341);
     }
 
     #[test]
@@ -775,22 +782,97 @@ mod tests {
     }
 
     #[test]
+    fn test_short_periodics() {
+        let (
+            r,
+            temp2,
+            betal,
+            x3thm1,
+            temp1,
+            x1mth2,
+            cos2u,
+            u,
+            x7thm1,
+            sin2u,
+            xnode,
+            cosio,
+            sinio,
+            xincl,
+            rdot,
+            xn,
+            rfdot,
+        ) = (
+            1.0430516048741472,
+            0.0005004479094222182,
+            0.9999543754967234,
+            -0.73895561738563,
+            0.0005204771435457296,
+            0.91298520579521,
+            0.8538389429983284,
+            2.867852612718983,
+            -0.3908964405664701,
+            -0.5205372795674639,
+            2.02403913260325,
+            0.29498270153483575,
+            0.9555025932959105,
+            1.27135891222375,
+            0.0006636054871099481,
+            0.07010615556528188,
+            0.07271020474319065,
+        );
+
+        assert_eq!(
+            ShortPeriodicsOutput {
+                rk: 6657.7080462027025,
+                uk: 2.867827155413039,
+                xnodek: 2.0239238673191204,
+                xinck: 1.2715395691080913,
+                rdotk: 0.07238614054582597,
+                rfdotk: 7.727982650878059
+            },
+            short_periodics(
+                r, temp2, betal, x3thm1, temp1, x1mth2, cos2u, u, x7thm1, sin2u, xnode, cosio,
+                sinio, xincl, rdot, xn, rfdot
+            )
+        )
+    }
+
+    #[test]
+    fn test_calculate_orientation_vectors() {
+        let uk = 2.867827155413039;
+        let xinck = 1.2715395691080913;
+        let xnodek = 2.0239238673191204;
+
+        assert_eq!(
+            OrientationVectors {
+                ux: 0.3498156817129497,
+                uy: -0.9004932019514819,
+                uz: 0.25834276081762364,
+                vx: 0.3735451525121787,
+                vy: -0.11881912112969674,
+                vz: -0.9199706709937114,
+            },
+            calculate_orientation_vectors(uk, xinck, xnodek)
+        )
+    }
+
+    #[test]
     fn test_calculate_position_and_velocity() {
         let ov = OrientationVectors {
-            ux: 0.3498156642735742,
-            uy: -0.9004930819129486,
-            uz: 0.2583427670172551,
-            vx: 0.373545155612984,
-            vy: -0.118819129760556,
-            vz: -0.920099684696985,
+            ux: 0.3498156817129497,
+            uy: -0.9004932019514819,
+            uz: 0.25834276081762364,
+            vx: 0.3735451525121787,
+            vy: -0.11881912112969674,
+            vz: -0.9199706709937114,
         };
         let spo = ShortPeriodicsOutput {
-            rk: 6657.707913821422,
-            uk: 0.0,
-            xnodek: 0.0,
-            xinck: 0.0,
-            rdotk: 0.072386220624613,
-            rfdotk: 7.727982754483756,
+            rk: 6657.7080462027025,
+            uk: 2.867827155413039,
+            xnodek: 2.0239238673191204,
+            xinck: 1.2715395691080913,
+            rdotk: 0.07238614054582597,
+            rfdotk: 7.727982650878059,
         };
         let pav = calculate_position_and_velocity(ov, spo);
 
@@ -804,7 +886,7 @@ mod tests {
 
     #[test]
     fn test_sgp4() {
-        sgp4(
+        let ouput = sgp4(
             TSINCE,
             recover_original_mean_motion_and_semimajor_axis(XNO, XINCL, EO),
             EO,
@@ -815,6 +897,25 @@ mod tests {
             XMO,
             XNODEO,
             E6A,
+        );
+
+        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.x, ouput.x, epsilon = TOLERANCE);
+        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.y, ouput.y, epsilon = TOLERANCE);
+        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.z, ouput.z, epsilon = TOLERANCE);
+        assert_abs_diff_eq!(
+            POSITION_AND_VELOCITY_0.xdot,
+            ouput.xdot,
+            epsilon = TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            POSITION_AND_VELOCITY_0.ydot,
+            ouput.ydot,
+            epsilon = TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            POSITION_AND_VELOCITY_0.zdot,
+            ouput.zdot,
+            epsilon = TOLERANCE
         );
     }
 }
