@@ -56,6 +56,15 @@ struct DConstants {
     d4: f64,
 }
 
+struct OrientationVectors {
+    ux: f64,
+    uy: f64,
+    uz: f64,
+    vx: f64,
+    vy: f64,
+    vz: f64,
+}
+
 // Values from NORAD SPACETRACK REPORT NO. 3 physical and mathematical constants
 const CK2: f64 = 0.0005413080;
 const CK4: f64 = 0.00000062098875;
@@ -359,6 +368,32 @@ fn short_period_prelimenary_quantities(
     (r, rdot, rfdot, temp2, betal, temp1, cos2u, u, sin2u)
 }
 
+fn calculate_orientation_vectors(uk: f64, xinck: f64, xnodek: f64) -> OrientationVectors {
+    let sinuk = uk.sin();
+    let cosuk = uk.cos();
+    let sinik = xinck.sin();
+    let cosik = xinck.cos();
+    let sinnok = xnodek.sin();
+    let cosnok = xnodek.cos();
+    let xmx = -sinnok * cosik;
+    let xmy = cosnok * cosik;
+    let ux = xmx * sinuk + cosnok * cosuk;
+    let uy = xmy * sinuk + sinnok * cosuk;
+    let uz = sinik * sinuk;
+    let vx = xmx * cosuk - cosnok * sinuk;
+    let vy = xmy * cosuk - sinnok * sinuk;
+    let vz = sinik * cosuk;
+
+    OrientationVectors {
+        ux,
+        uy,
+        uz,
+        vx,
+        vy,
+        vz,
+    }
+}
+
 fn sgp4(
     tsince: f64,
     mmasmao: MeanMotionAndSemimajorAxisOutput,
@@ -485,6 +520,8 @@ fn sgp4(
         sgaaduo.xn,
         rfdot,
     );
+
+    let ov = calculate_orientation_vectors(spo.uk, spo.xinck, spo.xnodek);
 }
 
 fn main() -> eframe::Result {
