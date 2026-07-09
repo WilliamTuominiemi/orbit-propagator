@@ -29,6 +29,8 @@ struct KeplersEquationOutput {
     temp4: f64,
     temp5: f64,
     temp6: f64,
+    sinepw: f64,
+    cosepw: f64,
 }
 
 struct ShortPeriodicsOutput {
@@ -283,6 +285,11 @@ fn fmod2p(x: f64) -> f64 {
     temp
 }
 
+fn actan(sinx: f64, cosx: f64) -> f64 {
+    let angle = sinx.atan2(cosx);
+    if angle < 0.0 { angle + TWOPI } else { angle }
+}
+
 fn keplers_equation(xlt: f64, xnode: f64, axn: f64, ayn: f64, e6a: f64) -> KeplersEquationOutput {
     let capu = fmod2p(xlt - xnode);
     let mut temp2 = capu;
@@ -292,9 +299,12 @@ fn keplers_equation(xlt: f64, xnode: f64, axn: f64, ayn: f64, e6a: f64) -> Keple
     let mut temp6 = 0.0;
     let mut epw = temp2;
 
+    let mut sinepw = 0.0;
+    let mut cosepw = 0.0;
+
     for _ in 0..10 {
-        let sinepw = temp2.sin();
-        let cosepw = temp2.cos();
+        sinepw = temp2.sin();
+        cosepw = temp2.cos();
         temp3 = axn * sinepw;
         temp4 = ayn * cosepw;
         temp5 = axn * cosepw;
@@ -314,7 +324,39 @@ fn keplers_equation(xlt: f64, xnode: f64, axn: f64, ayn: f64, e6a: f64) -> Keple
         temp4,
         temp5,
         temp6,
+        sinepw,
+        cosepw,
     }
+}
+
+fn short_period_prelimenary_quantities(
+    keo: KeplersEquationOutput,
+    axn: f64,
+    ayn: f64,
+    a: f64,
+    temp1: f64,
+) -> (f64, f64, f64, f64, f64, f64, f64, f64, f64) {
+    let ecose = keo.temp5 + keo.temp6;
+    let esine = keo.temp3 - keo.temp4;
+    let elsq = axn * axn + ayn * ayn;
+    let temp = 1.0 - elsq;
+    let pl = a * temp;
+    let r = a * (1.0 - ecose);
+    let rdot = XKE * a.sqrt() * esine * temp1;
+    let rfdot = XKE * pl.sqrt() * temp1;
+    let mut temp2 = a * temp1;
+    let betal = temp.sqrt();
+    let temp3 = 1.0 / (1.0 + betal);
+    let cosu = temp2 * (keo.cosepw - axn + ayn * esine * temp3);
+    let sinu = temp2 * (keo.sinepw - ayn - axn * esine * temp3);
+    let u = actan(sinu, cosu);
+    let sin2u = 2.0 * sinu * cosu;
+    let cos2u = 20. * cosu * cosu - 1.0;
+    let temp = 1.0 / pl;
+    let temp1 = CK2 * temp;
+    temp2 = temp1 * temp;
+
+    (r, rdot, rfdot, temp2, betal, temp1, cos2u, u, sin2u)
 }
 
 fn sgp4(
@@ -349,6 +391,7 @@ fn sgp4(
     let coef = qoms24 * tsi.powf(4.0);
     let sinio = xincl.sin();
     let a3ovk2 = -XJ3 / CK2 * AE.powf(3.0);
+    let x1mth2 = 1.0 - theta2;
 
     let c_constants = calculate_c_constants(
         eta, coef, xnodp, aodp, eeta, tsi, x3thm1, bstar, a3ovk2, sinio, eo, betao2, theta2, omegao,
@@ -418,7 +461,30 @@ fn sgp4(
 
     let (xlt, ayn, axn) = long_period_periodics(&sgaaduo, omegao, xlcof, aycof);
 
-    keplers_equation(xlt, sgaaduo.xnode, axn, ayn, e6a);
+    let keo = keplers_equation(xlt, sgaaduo.xnode, axn, ayn, e6a);
+
+    let (r, rdot, rfdot, temp2, betal, temp1, cos2u, u, sin2u) =
+        short_period_prelimenary_quantities(keo, axn, ayn, sgaaduo.a, temp1);
+
+    let spo = short_periodics(
+        r,
+        temp2,
+        betal,
+        x3thm1,
+        temp1,
+        x1mth2,
+        cos2u,
+        u,
+        x7thm1,
+        sin2u,
+        sgaaduo.xnode,
+        cosio,
+        sinio,
+        xincl,
+        rdot,
+        sgaaduo.xn,
+        rfdot,
+    );
 }
 
 fn main() -> eframe::Result {
