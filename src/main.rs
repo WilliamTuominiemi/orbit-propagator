@@ -1,8 +1,9 @@
 use eframe::egui;
-use eframe::wgpu::TlasInstance;
 use egui_plot::Line;
 use egui_plot::Plot;
 use egui_plot::PlotPoints;
+
+mod constants;
 
 struct MeanMotionAndSemimajorAxisOutput {
     xnodp: f64,
@@ -79,35 +80,21 @@ struct PositionAndVelocity {
     zdot: f64,
 }
 
-// Values from NORAD SPACETRACK REPORT NO. 3 physical and mathematical constants
-const CK2: f64 = 0.0005413080;
-const CK4: f64 = 0.00000062098875;
-const QOMS2T: f64 = 0.00000000188027916;
-const S: f64 = 1.01222928;
-const TOTHRD: f64 = 0.66666667;
-const XJ3: f64 = -0.00000253881;
-const XKE: f64 = 0.074366916;
-const XKMPER: f64 = 6378.135;
-const XMNPDA: f64 = 1440.0;
-const AE: f64 = 1.0;
-const DE2RA: f64 = 0.0174532925;
-const TWOPI: f64 = 6.2831853;
-
 fn recover_original_mean_motion_and_semimajor_axis(
     xno: f64,
     xincl: f64,
     eo: f64,
 ) -> MeanMotionAndSemimajorAxisOutput {
-    let a1 = (XKE / xno).powf(TOTHRD);
+    let a1 = (constants::XKE / xno).powf(constants::TOTHRD);
     let cosio = xincl.cos();
     let theta2 = cosio * cosio;
     let x3thm1 = 3.0 * theta2 - 1.0;
     let eosq = eo * eo;
     let betao2 = 1.0 - eosq;
     let betao = f64::sqrt(betao2);
-    let del1 = 1.5 * CK2 * x3thm1 / (a1 * a1 * betao * betao2);
-    let ao = a1 * (1.0 - del1 * (0.5 * TOTHRD + del1 * (1.0 + 134.0 / 81.0 * del1)));
-    let delo = 1.5 * CK2 * x3thm1 / (ao * ao * betao * betao2);
+    let del1 = 1.5 * constants::CK2 * x3thm1 / (a1 * a1 * betao * betao2);
+    let ao = a1 * (1.0 - del1 * (0.5 * constants::TOTHRD + del1 * (1.0 + 134.0 / 81.0 * del1)));
+    let delo = 1.5 * constants::CK2 * x3thm1 / (ao * ao * betao * betao2);
     let xnodp = xno / (1.0 + delo);
     let aodp = ao / (1.0 - delo);
 
@@ -123,16 +110,16 @@ fn recover_original_mean_motion_and_semimajor_axis(
 }
 
 fn adjust_atmospheric_drag_for_low_orbit(aodp: f64, eo: f64) -> (f64, f64) {
-    let mut s4 = S;
-    let mut qoms24 = QOMS2T;
-    let perigee = (aodp * (1.0 - eo) - AE) * XKMPER;
+    let mut s4 = constants::S;
+    let mut qoms24 = constants::QOMS2T;
+    let perigee = (aodp * (1.0 - eo) - constants::AE) * constants::XKMPER;
     if perigee < 156.0 {
         s4 = perigee - 78.0;
         if perigee <= 98.0 {
             s4 = 20.0;
         }
-        qoms24 = ((120.0 - s4) * AE / XKMPER).powf(4.0);
-        s4 = s4 / XKMPER + AE;
+        qoms24 = ((120.0 - s4) * constants::AE / constants::XKMPER).powf(4.0);
+        s4 = s4 / constants::XKMPER + constants::AE;
     }
 
     (s4, qoms24)
@@ -162,16 +149,16 @@ fn calculate_c_constants(
     let c2 = coef1
         * xnodp
         * (aodp * (1.0 + 1.5 * etasq + eeta * (4.0 + etasq))
-            + 0.75 * CK2 * tsi / psisq * x3thm1 * (8.0 + 3.0 * etasq * (8.0 + etasq)));
+            + 0.75 * constants::CK2 * tsi / psisq * x3thm1 * (8.0 + 3.0 * etasq * (8.0 + etasq)));
     let c1 = bstar * c2;
-    let c3 = coef * tsi * a3ovk2 * xnodp * AE * sinio / eo;
+    let c3 = coef * tsi * a3ovk2 * xnodp * constants::AE * sinio / eo;
     let c4 = 2.0
         * xnodp
         * coef1
         * aodp
         * betao2
         * (eta * (2.0 + 0.5 * etasq) + eo * (0.5 + 2.0 * etasq)
-            - 2.0 * CK2 * tsi / (aodp * psisq)
+            - 2.0 * constants::CK2 * tsi / (aodp * psisq)
                 * (-3.0 * x3thm1 * (1.0 - 2.0 * eeta + etasq * (1.5 - 0.5 * eeta))
                     + 0.75 * x1mth2 * (2.0 * etasq - eeta * (1.0 + etasq)) * (2.0 * omegao).cos()));
     let c5 = 2.0 * coef1 * aodp * betao2 * (1.0 + 2.75 * (etasq + eeta) + eeta * etasq);
@@ -237,7 +224,7 @@ fn update_for_secular_gravity_and_atmospheric_drag(
     let e = eo - tempe;
     let xl = xmp + omega + xnode + xnodp * templ;
     let beta = (1.0 - e * e).sqrt();
-    let xn = XKE / a.powf(1.5);
+    let xn = constants::XKE / a.powf(1.5);
 
     SecularGravityAndAtmosphericDragUpdateOutput {
         e,
@@ -284,12 +271,13 @@ fn short_periodics(
     xn: f64,
     rfdot: f64,
 ) -> ShortPeriodicsOutput {
-    let rk = (r * (1.0 - 1.5 * temp2 * betal * x3thm1) + 0.5 * temp1 * x1mth2 * cos2u) * XKMPER;
+    let rk = (r * (1.0 - 1.5 * temp2 * betal * x3thm1) + 0.5 * temp1 * x1mth2 * cos2u)
+        * constants::XKMPER;
     let uk = u - 0.25 * temp2 * x7thm1 * sin2u;
     let xnodek = xnode + 1.5 * temp2 * cosio * sin2u;
     let xinck = xincl + 1.5 * temp2 * cosio * sinio * cos2u;
-    let rdotk = (rdot - xn * temp1 * x1mth2 * sin2u) * XKMPER / 60.0;
-    let rfdotk = (rfdot + xn * temp1 * (x1mth2 * cos2u + 1.5 * x3thm1)) * XKMPER / 60.0;
+    let rdotk = (rdot - xn * temp1 * x1mth2 * sin2u) * constants::XKMPER / 60.0;
+    let rfdotk = (rfdot + xn * temp1 * (x1mth2 * cos2u + 1.5 * x3thm1)) * constants::XKMPER / 60.0;
 
     ShortPeriodicsOutput {
         rk,
@@ -302,17 +290,21 @@ fn short_periodics(
 }
 
 fn fmod2p(x: f64) -> f64 {
-    let rev = x / TWOPI;
-    let mut temp = x - (rev.trunc()) * TWOPI;
+    let rev = x / constants::TWOPI;
+    let mut temp = x - (rev.trunc()) * constants::TWOPI;
     if temp < 0.0 {
-        temp += TWOPI;
+        temp += constants::TWOPI;
     }
     temp
 }
 
 fn actan(sinx: f64, cosx: f64) -> f64 {
     let angle = sinx.atan2(cosx);
-    if angle < 0.0 { angle + TWOPI } else { angle }
+    if angle < 0.0 {
+        angle + constants::TWOPI
+    } else {
+        angle
+    }
 }
 
 fn keplers_equation(xlt: f64, xnode: f64, axn: f64, ayn: f64, e6a: f64) -> KeplersEquationOutput {
@@ -368,8 +360,8 @@ fn short_period_prelimenary_quantities(
     let pl = a * temp;
     let r = a * (1.0 - ecose);
     let temp1 = 1.0 / r;
-    let rdot = XKE * a.sqrt() * esine * temp1;
-    let rfdot = XKE * pl.sqrt() * temp1;
+    let rdot = constants::XKE * a.sqrt() * esine * temp1;
+    let rfdot = constants::XKE * pl.sqrt() * temp1;
     let mut temp2 = a * temp1;
     let betal = temp.sqrt();
     let temp3 = 1.0 / (1.0 + betal);
@@ -379,7 +371,7 @@ fn short_period_prelimenary_quantities(
     let sin2u = 2.0 * sinu * cosu;
     let cos2u = 2.0 * cosu * cosu - 1.0;
     let temp = 1.0 / pl;
-    let temp1 = CK2 * temp;
+    let temp1 = constants::CK2 * temp;
     temp2 = temp1 * temp;
 
     (r, rdot, rfdot, temp2, betal, temp1, cos2u, u, sin2u)
@@ -463,7 +455,7 @@ fn sgp4(
 
     let coef = qoms24 * tsi.powf(4.0);
     let sinio = xincl.sin();
-    let a3ovk2 = -XJ3 / CK2 * AE.powf(3.0);
+    let a3ovk2 = -constants::XJ3 / constants::CK2 * constants::AE.powf(3.0);
     let x1mth2 = 1.0 - theta2;
 
     let c_constants = calculate_c_constants(
@@ -471,8 +463,8 @@ fn sgp4(
     );
 
     let theta4 = theta2 * theta2;
-    let temp1 = 3.0 * CK2 * pinvsq * xnodp;
-    let temp2 = temp1 * CK2 * pinvsq;
+    let temp1 = 3.0 * constants::CK2 * pinvsq * xnodp;
+    let temp2 = temp1 * constants::CK2 * pinvsq;
     let temp3 = 1.25 * ck4 * pinvsq * pinvsq * xnodp;
 
     let xmdot = xnodp
@@ -486,7 +478,7 @@ fn sgp4(
     let xnodot =
         xhdot1 + (0.5 * temp2 * (4.0 - 19.0 * theta2) + 2.0 * temp3 * (3.0 - 7.0 * theta2)) * cosio;
     let omgcof = bstar * c_constants.c3 * omegao.cos();
-    let xmcof = -TOTHRD * coef * bstar * AE / eeta;
+    let xmcof = -constants::TOTHRD * coef * bstar * constants::AE / eeta;
     let xnodcf = 3.5 * betao2 * xhdot1 * c_constants.c1;
     let t2cof = 1.5 * c_constants.c1;
     let xlcof = 0.125 * a3ovk2 * sinio * (3.0 + 5.0 * cosio) / (1.0 + cosio);
@@ -592,14 +584,14 @@ mod tests {
     use approx::assert_abs_diff_eq;
 
     // Values are NORAD SPACETRACK REPORT NO. 3 SGP4 sample test case input parameters
-    const XNO: f64 = 16.05824518 * (TWOPI / XMNPDA);
-    const XINCL: f64 = 72.8435 * DE2RA;
+    const XNO: f64 = 16.05824518 * (constants::TWOPI / constants::XMNPDA);
+    const XINCL: f64 = 72.8435 * constants::DE2RA;
     const EO: f64 = 0.0086731;
     const BSTAR: f64 = 0.000066816;
-    const OMEGAO: f64 = 52.6988 * DE2RA;
-    const XMO: f64 = 110.5714 * DE2RA;
+    const OMEGAO: f64 = 52.6988 * constants::DE2RA;
+    const XMO: f64 = 110.5714 * constants::DE2RA;
     const TSINCE: f64 = 0.0;
-    const XNODEO: f64 = 115.9689 * DE2RA;
+    const XNODEO: f64 = 115.9689 * constants::DE2RA;
     const E6A: f64 = 0.000001;
 
     // Values from SGP4 sample test case output values
@@ -632,8 +624,8 @@ mod tests {
         let aodp = 1.040117522759639; // From previous test, same sample test case
         let (s4, qoms24) = adjust_atmospheric_drag_for_low_orbit(aodp, EO);
 
-        assert_eq!(s4, S);
-        assert_eq!(qoms24, QOMS2T);
+        assert_eq!(s4, constants::S);
+        assert_eq!(qoms24, constants::QOMS2T);
     }
 
     #[test]
@@ -893,7 +885,7 @@ mod tests {
             BSTAR,
             XINCL,
             OMEGAO,
-            CK4,
+            constants::CK4,
             XMO,
             XNODEO,
             E6A,
