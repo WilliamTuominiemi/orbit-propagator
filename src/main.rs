@@ -358,7 +358,6 @@ fn calculate_position_and_velocity(
 
 fn sgp4(
     tsince: f64,
-    mmasmao: types::MeanMotionAndSemimajorAxisOutput,
     eo: f64,
     bstar: f64,
     xincl: f64,
@@ -367,7 +366,10 @@ fn sgp4(
     xmo: f64,
     xnodeo: f64,
     e6a: f64,
+    xno: f64,
 ) -> types::PositionAndVelocity {
+    let mmasmao = recover_original_mean_motion_and_semimajor_axis(xno, xincl, eo);
+
     let (xnodp, aodp, betao2, betao, x3thm1, theta2, cosio) = (
         mmasmao.xnodp,
         mmasmao.aodp,
@@ -812,7 +814,6 @@ mod tests {
     fn test_sgp4() {
         let ouput = sgp4(
             TSINCE,
-            recover_original_mean_motion_and_semimajor_axis(XNO, XINCL, EO),
             EO,
             BSTAR,
             XINCL,
@@ -821,6 +822,7 @@ mod tests {
             XMO,
             XNODEO,
             E6A,
+            XNO,
         );
 
         assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.x, ouput.x, epsilon = TOLERANCE);
