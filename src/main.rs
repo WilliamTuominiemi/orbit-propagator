@@ -4,6 +4,8 @@ use egui_plot::Plot;
 use egui_plot::PlotPoints;
 
 mod constants;
+mod helpers;
+mod sgp4;
 mod types;
 
 fn recover_original_mean_motion_and_semimajor_axis(
