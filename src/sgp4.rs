@@ -125,6 +125,8 @@ impl Sgp4 {
         }
     }
 }
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
