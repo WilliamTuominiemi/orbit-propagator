@@ -4,87 +4,13 @@ use egui_plot::Plot;
 use egui_plot::PlotPoints;
 
 mod constants;
-
-struct MeanMotionAndSemimajorAxisOutput {
-    xnodp: f64,
-    aodp: f64,
-    betao2: f64,
-    betao: f64,
-    x3thm1: f64,
-    theta2: f64,
-    cosio: f64,
-}
-
-#[derive(Debug)]
-struct SecularGravityAndAtmosphericDragUpdateOutput {
-    e: f64,
-    a: f64,
-    xl: f64,
-    beta: f64,
-    xn: f64,
-    xnode: f64,
-    omega: f64,
-}
-
-struct KeplersEquationOutput {
-    temp2: f64,
-    temp3: f64,
-    temp4: f64,
-    temp5: f64,
-    temp6: f64,
-    sinepw: f64,
-    cosepw: f64,
-}
-
-#[derive(Debug, PartialEq)]
-struct ShortPeriodicsOutput {
-    rk: f64,
-    uk: f64,
-    xnodek: f64,
-    xinck: f64,
-    rdotk: f64,
-    rfdotk: f64,
-}
-#[derive(Debug)]
-struct CConstants {
-    c1: f64,
-    c2: f64,
-    c3: f64,
-    c4: f64,
-    c5: f64,
-}
-#[derive(Debug)]
-struct DConstants {
-    d2: f64,
-    d3: f64,
-    d4: f64,
-}
-
-#[derive(Debug, PartialEq)]
-struct OrientationVectors {
-    ux: f64,
-    uy: f64,
-    uz: f64,
-    vx: f64,
-    vy: f64,
-    vz: f64,
-}
-
-#[derive(Debug, PartialEq)]
-struct PositionAndVelocity {
-    x: f64,
-    y: f64,
-    z: f64,
-    xdot: f64,
-    ydot: f64,
-    zdot: f64,
-}
+mod types;
 
 fn recover_original_mean_motion_and_semimajor_axis(
     xno: f64,
     xincl: f64,
     eo: f64,
-) -> MeanMotionAndSemimajorAxisOutput {
+) -> types::MeanMotionAndSemimajorAxisOutput {
     let a1 = (constants::XKE / xno).powf(constants::TOTHRD);
     let cosio = xincl.cos();
     let theta2 = cosio * cosio;
@@ -98,7 +24,7 @@ fn recover_original_mean_motion_and_semimajor_axis(
     let xnodp = xno / (1.0 + delo);
     let aodp = ao / (1.0 - delo);
 
-    MeanMotionAndSemimajorAxisOutput {
+    types::MeanMotionAndSemimajorAxisOutput {
         xnodp,
         aodp,
         betao2,
@@ -140,7 +66,7 @@ fn calculate_c_constants(
     betao2: f64,
     theta2: f64,
     omegao: f64,
-) -> CConstants {
+) -> types::CConstants {
     let x1mth2 = 1.0 - theta2;
     let etasq = eta * eta;
     let psisq = (1.0 - etasq).abs();
@@ -163,16 +89,16 @@ fn calculate_c_constants(
                     + 0.75 * x1mth2 * (2.0 * etasq - eeta * (1.0 + etasq)) * (2.0 * omegao).cos()));
     let c5 = 2.0 * coef1 * aodp * betao2 * (1.0 + 2.75 * (etasq + eeta) + eeta * etasq);
 
-    CConstants { c1, c2, c3, c4, c5 }
+    types::CConstants { c1, c2, c3, c4, c5 }
 }
 
-fn calculate_d_constants(aodp: f64, tsi: f64, c1sq: f64, s4: f64, c1: f64) -> DConstants {
+fn calculate_d_constants(aodp: f64, tsi: f64, c1sq: f64, s4: f64, c1: f64) -> types::DConstants {
     let d2 = 4.0 * aodp * tsi * c1sq;
     let temp = d2 * tsi * c1 / 3.0;
     let d3 = (17.0 * aodp + s4) * temp;
     let d4 = 0.5 * temp * aodp * tsi * (221.0 * aodp + 31.0 * s4) * c1;
 
-    DConstants { d2, d3, d4 }
+    types::DConstants { d2, d3, d4 }
 }
 
 fn update_for_secular_gravity_and_atmospheric_drag(
@@ -197,9 +123,9 @@ fn update_for_secular_gravity_and_atmospheric_drag(
     t3cof: f64,
     t4cof: f64,
     t5cof: f64,
-    c_constants: CConstants,
-    d_constants: DConstants,
-) -> SecularGravityAndAtmosphericDragUpdateOutput {
+    c_constants: types::CConstants,
+    d_constants: types::DConstants,
+) -> types::SecularGravityAndAtmosphericDragUpdateOutput {
     let xmdf = xmo + xmdot * tsince;
     let omgadf = omegao + omgdot * tsince;
     let xnoddf = xnodeo + xnodot * tsince;
@@ -226,7 +152,7 @@ fn update_for_secular_gravity_and_atmospheric_drag(
     let beta = (1.0 - e * e).sqrt();
     let xn = constants::XKE / a.powf(1.5);
 
-    SecularGravityAndAtmosphericDragUpdateOutput {
+    types::SecularGravityAndAtmosphericDragUpdateOutput {
         e,
         a,
         xl,
@@ -238,7 +164,7 @@ fn update_for_secular_gravity_and_atmospheric_drag(
 }
 
 fn long_period_periodics(
-    sgaaduo: &SecularGravityAndAtmosphericDragUpdateOutput,
+    sgaaduo: &types::SecularGravityAndAtmosphericDragUpdateOutput,
     xlcof: f64,
     aycof: f64,
 ) -> (f64, f64, f64) {
@@ -270,7 +196,7 @@ fn short_periodics(
     rdot: f64,
     xn: f64,
     rfdot: f64,
-) -> ShortPeriodicsOutput {
+) -> types::ShortPeriodicsOutput {
     let rk = (r * (1.0 - 1.5 * temp2 * betal * x3thm1) + 0.5 * temp1 * x1mth2 * cos2u)
         * constants::XKMPER;
     let uk = u - 0.25 * temp2 * x7thm1 * sin2u;
@@ -279,7 +205,7 @@ fn short_periodics(
     let rdotk = (rdot - xn * temp1 * x1mth2 * sin2u) * constants::XKMPER / 60.0;
     let rfdotk = (rfdot + xn * temp1 * (x1mth2 * cos2u + 1.5 * x3thm1)) * constants::XKMPER / 60.0;
 
-    ShortPeriodicsOutput {
+    types::ShortPeriodicsOutput {
         rk,
         uk,
         xnodek,
@@ -307,7 +233,13 @@ fn actan(sinx: f64, cosx: f64) -> f64 {
     }
 }
 
-fn keplers_equation(xlt: f64, xnode: f64, axn: f64, ayn: f64, e6a: f64) -> KeplersEquationOutput {
+fn keplers_equation(
+    xlt: f64,
+    xnode: f64,
+    axn: f64,
+    ayn: f64,
+    e6a: f64,
+) -> types::KeplersEquationOutput {
     let capu = fmod2p(xlt - xnode);
     let mut temp2 = capu;
     let mut temp3 = 0.0;
@@ -335,7 +267,7 @@ fn keplers_equation(xlt: f64, xnode: f64, axn: f64, ayn: f64, e6a: f64) -> Keple
         temp2 = epw;
     }
 
-    KeplersEquationOutput {
+    types::KeplersEquationOutput {
         temp2,
         temp3,
         temp4,
@@ -347,7 +279,7 @@ fn keplers_equation(xlt: f64, xnode: f64, axn: f64, ayn: f64, e6a: f64) -> Keple
 }
 
 fn short_period_prelimenary_quantities(
-    keo: KeplersEquationOutput,
+    keo: types::KeplersEquationOutput,
     axn: f64,
     ayn: f64,
     a: f64,
@@ -377,7 +309,7 @@ fn short_period_prelimenary_quantities(
     (r, rdot, rfdot, temp2, betal, temp1, cos2u, u, sin2u)
 }
 
-fn calculate_orientation_vectors(uk: f64, xinck: f64, xnodek: f64) -> OrientationVectors {
+fn calculate_orientation_vectors(uk: f64, xinck: f64, xnodek: f64) -> types::OrientationVectors {
     let sinuk = uk.sin();
     let cosuk = uk.cos();
     let sinik = xinck.sin();
@@ -393,7 +325,7 @@ fn calculate_orientation_vectors(uk: f64, xinck: f64, xnodek: f64) -> Orientatio
     let vy = xmy * cosuk - sinnok * sinuk;
     let vz = sinik * cosuk;
 
-    OrientationVectors {
+    types::OrientationVectors {
         ux,
         uy,
         uz,
@@ -404,9 +336,9 @@ fn calculate_orientation_vectors(uk: f64, xinck: f64, xnodek: f64) -> Orientatio
 }
 
 fn calculate_position_and_velocity(
-    ov: OrientationVectors,
-    spo: ShortPeriodicsOutput,
-) -> PositionAndVelocity {
+    ov: types::OrientationVectors,
+    spo: types::ShortPeriodicsOutput,
+) -> types::PositionAndVelocity {
     let x = spo.rk * ov.ux;
     let y = spo.rk * ov.uy;
     let z = spo.rk * ov.uz;
@@ -414,7 +346,7 @@ fn calculate_position_and_velocity(
     let ydot = spo.rdotk * ov.uy + spo.rfdotk * ov.vy;
     let zdot = spo.rdotk * ov.uz + spo.rfdotk * ov.vz;
 
-    PositionAndVelocity {
+    types::PositionAndVelocity {
         x,
         y,
         z,
@@ -426,7 +358,7 @@ fn calculate_position_and_velocity(
 
 fn sgp4(
     tsince: f64,
-    mmasmao: MeanMotionAndSemimajorAxisOutput,
+    mmasmao: types::MeanMotionAndSemimajorAxisOutput,
     eo: f64,
     bstar: f64,
     xincl: f64,
@@ -435,7 +367,7 @@ fn sgp4(
     xmo: f64,
     xnodeo: f64,
     e6a: f64,
-) -> PositionAndVelocity {
+) -> types::PositionAndVelocity {
     let (xnodp, aodp, betao2, betao, x3thm1, theta2, cosio) = (
         mmasmao.xnodp,
         mmasmao.aodp,
@@ -595,7 +527,7 @@ mod tests {
     const E6A: f64 = 0.000001;
 
     // Values from SGP4 sample test case output values
-    const POSITION_AND_VELOCITY_0: PositionAndVelocity = PositionAndVelocity {
+    const POSITION_AND_VELOCITY_0: types::PositionAndVelocity = types::PositionAndVelocity {
         x: 2328.97048951,
         y: -5995.22076416,
         z: 1719.97067261,
@@ -689,14 +621,14 @@ mod tests {
         let t4cof = 0.00000000000000000032351134586589164;
         let t5cof = 0.0000000000000000000000015781283156000947;
 
-        let c_constants = CConstants {
+        let c_constants = types::CConstants {
             c1: 2.3338044215116538e-8,
             c2: 0.0003492882575298811,
             c3: 0.004037532255765166,
             c4: 0.000377201121554739,
             c5: 0.012334919304344908,
         };
-        let d_constants = DConstants {
+        let d_constants = types::DConstants {
             d2: 8.12550142270866e-14,
             d3: 4.2372075736327043e-19,
             d4: 2.5770097992217537e-24,
@@ -737,7 +669,7 @@ mod tests {
 
     #[test]
     fn test_long_period_periodics() {
-        let sgaaduo = SecularGravityAndAtmosphericDragUpdateOutput {
+        let sgaaduo = types::SecularGravityAndAtmosphericDragUpdateOutput {
             e: 0.0086731,
             a: 1.040117522759639,
             xl: 0.07010615558630984,
@@ -814,7 +746,7 @@ mod tests {
         );
 
         assert_eq!(
-            ShortPeriodicsOutput {
+            types::ShortPeriodicsOutput {
                 rk: 6657.7080462027025,
                 uk: 2.867827155413039,
                 xnodek: 2.0239238673191204,
@@ -836,7 +768,7 @@ mod tests {
         let xnodek = 2.0239238673191204;
 
         assert_eq!(
-            OrientationVectors {
+            types::OrientationVectors {
                 ux: 0.3498156817129497,
                 uy: -0.9004932019514819,
                 uz: 0.25834276081762364,
@@ -850,7 +782,7 @@ mod tests {
 
     #[test]
     fn test_calculate_position_and_velocity() {
-        let ov = OrientationVectors {
+        let ov = types::OrientationVectors {
             ux: 0.3498156817129497,
             uy: -0.9004932019514819,
             uz: 0.25834276081762364,
@@ -858,7 +790,7 @@ mod tests {
             vy: -0.11881912112969674,
             vz: -0.9199706709937114,
         };
-        let spo = ShortPeriodicsOutput {
+        let spo = types::ShortPeriodicsOutput {
             rk: 6657.7080462027025,
             uk: 2.867827155413039,
             xnodek: 2.0239238673191204,
