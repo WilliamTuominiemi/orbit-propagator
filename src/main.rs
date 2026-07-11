@@ -6,6 +6,7 @@ use egui_plot::PlotPoints;
 mod constants;
 mod helpers;
 mod sgp4;
+mod test_constants;
 mod types;
 
 fn recover_original_mean_motion_and_semimajor_axis(
@@ -519,32 +520,13 @@ mod tests {
     use super::*;
     use approx::assert_abs_diff_eq;
 
-    // Values are NORAD SPACETRACK REPORT NO. 3 SGP4 sample test case input parameters
-    const XNO: f64 = 16.05824518 * (constants::TWOPI / constants::XMNPDA);
-    const XINCL: f64 = 72.8435 * constants::DE2RA;
-    const EO: f64 = 0.0086731;
-    const BSTAR: f64 = 0.000066816;
-    const OMEGAO: f64 = 52.6988 * constants::DE2RA;
-    const XMO: f64 = 110.5714 * constants::DE2RA;
-    const TSINCE: f64 = 0.0;
-    const XNODEO: f64 = 115.9689 * constants::DE2RA;
-    const E6A: f64 = 0.000001;
-
-    // Values from SGP4 sample test case output values
-    const POSITION_AND_VELOCITY_0: types::PositionAndVelocity = types::PositionAndVelocity {
-        x: 2328.97048951,
-        y: -5995.22076416,
-        z: 1719.97067261,
-        xdot: 2.91207230,
-        ydot: -0.98341546,
-        zdot: -7.09081703,
-    };
-
-    const TOLERANCE: f64 = 1e-3;
-
     #[test]
     fn test_recover_original_mean_motion_and_semimajor_axis() {
-        let mmasmao = recover_original_mean_motion_and_semimajor_axis(XNO, XINCL, EO);
+        let mmasmao = recover_original_mean_motion_and_semimajor_axis(
+            test_constants::XNO,
+            test_constants::XINCL,
+            test_constants::EO,
+        );
 
         assert_eq!(mmasmao.xnodp, 0.07010615558630984);
         assert_eq!(mmasmao.aodp, 1.040117522759639);
@@ -558,7 +540,7 @@ mod tests {
     #[test]
     fn test_adjust_atmospheric_drag_for_low_orbit() {
         let aodp = 1.040117522759639; // From previous test, same sample test case
-        let (s4, qoms24) = adjust_atmospheric_drag_for_low_orbit(aodp, EO);
+        let (s4, qoms24) = adjust_atmospheric_drag_for_low_orbit(aodp, test_constants::EO);
 
         assert_eq!(s4, constants::S);
         assert_eq!(qoms24, constants::QOMS2T);
@@ -581,8 +563,20 @@ mod tests {
         let theta2 = 0.08701479420479;
 
         let c_constants = calculate_c_constants(
-            eta, coef, xnodp, aodp, eeta, tsi, x3thm1, BSTAR, a3ovk2, sinio, EO, betao2, theta2,
-            OMEGAO,
+            eta,
+            coef,
+            xnodp,
+            aodp,
+            eeta,
+            tsi,
+            x3thm1,
+            test_constants::BSTAR,
+            a3ovk2,
+            sinio,
+            test_constants::EO,
+            betao2,
+            theta2,
+            test_constants::OMEGAO,
         );
 
         assert_eq!(c_constants.c1, 2.3338044215116538e-8);
@@ -639,21 +633,21 @@ mod tests {
         };
 
         let sgaaduo = update_for_secular_gravity_and_atmospheric_drag(
-            TSINCE,
-            XMO,
+            test_constants::TSINCE,
+            test_constants::XMO,
             xmdot,
-            OMEGAO,
+            test_constants::OMEGAO,
             omgdot,
-            XNODEO,
+            test_constants::XNODEO,
             xnodot,
             xnodcf,
-            BSTAR,
+            test_constants::BSTAR,
             omgcof,
             xmcof,
             eta,
             aodp,
             xnodp,
-            EO,
+            test_constants::EO,
             delmo,
             sinmo,
             t2cof,
@@ -700,7 +694,7 @@ mod tests {
         let axn = 0.005255942497390392;
         let ayn = 0.007976339600468509;
 
-        let keplers_equation_output = keplers_equation(xlt, xnode, axn, ayn, E6A);
+        let keplers_equation_output = keplers_equation(xlt, xnode, axn, ayn, test_constants::E6A);
 
         assert_eq!(keplers_equation_output.temp2, 0.06248313642895434);
         assert_eq!(keplers_equation_output.temp3, 0.0003281941220562471);
@@ -804,46 +798,82 @@ mod tests {
         };
         let pav = calculate_position_and_velocity(ov, spo);
 
-        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.x, pav.x, epsilon = TOLERANCE);
-        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.y, pav.y, epsilon = TOLERANCE);
-        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.z, pav.z, epsilon = TOLERANCE);
-        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.xdot, pav.xdot, epsilon = TOLERANCE);
-        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.ydot, pav.ydot, epsilon = TOLERANCE);
-        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.zdot, pav.zdot, epsilon = TOLERANCE);
+        assert_abs_diff_eq!(
+            test_constants::POSITION_AND_VELOCITY_0.x,
+            pav.x,
+            epsilon = test_constants::TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            test_constants::POSITION_AND_VELOCITY_0.y,
+            pav.y,
+            epsilon = test_constants::TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            test_constants::POSITION_AND_VELOCITY_0.z,
+            pav.z,
+            epsilon = test_constants::TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            test_constants::POSITION_AND_VELOCITY_0.xdot,
+            pav.xdot,
+            epsilon = test_constants::TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            test_constants::POSITION_AND_VELOCITY_0.ydot,
+            pav.ydot,
+            epsilon = test_constants::TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            test_constants::POSITION_AND_VELOCITY_0.zdot,
+            pav.zdot,
+            epsilon = test_constants::TOLERANCE
+        );
     }
 
     #[test]
     fn test_sgp4() {
         let ouput = sgp4(
-            TSINCE,
-            EO,
-            BSTAR,
-            XINCL,
-            OMEGAO,
+            test_constants::TSINCE,
+            test_constants::EO,
+            test_constants::BSTAR,
+            test_constants::XINCL,
+            test_constants::OMEGAO,
             constants::CK4,
-            XMO,
-            XNODEO,
-            E6A,
-            XNO,
+            test_constants::XMO,
+            test_constants::XNODEO,
+            test_constants::E6A,
+            test_constants::XNO,
         );
 
-        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.x, ouput.x, epsilon = TOLERANCE);
-        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.y, ouput.y, epsilon = TOLERANCE);
-        assert_abs_diff_eq!(POSITION_AND_VELOCITY_0.z, ouput.z, epsilon = TOLERANCE);
         assert_abs_diff_eq!(
-            POSITION_AND_VELOCITY_0.xdot,
+            test_constants::POSITION_AND_VELOCITY_0.x,
+            ouput.x,
+            epsilon = test_constants::TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            test_constants::POSITION_AND_VELOCITY_0.y,
+            ouput.y,
+            epsilon = test_constants::TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            test_constants::POSITION_AND_VELOCITY_0.z,
+            ouput.z,
+            epsilon = test_constants::TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            test_constants::POSITION_AND_VELOCITY_0.xdot,
             ouput.xdot,
-            epsilon = TOLERANCE
+            epsilon = test_constants::TOLERANCE
         );
         assert_abs_diff_eq!(
-            POSITION_AND_VELOCITY_0.ydot,
+            test_constants::POSITION_AND_VELOCITY_0.ydot,
             ouput.ydot,
-            epsilon = TOLERANCE
+            epsilon = test_constants::TOLERANCE
         );
         assert_abs_diff_eq!(
-            POSITION_AND_VELOCITY_0.zdot,
+            test_constants::POSITION_AND_VELOCITY_0.zdot,
             ouput.zdot,
-            epsilon = TOLERANCE
+            epsilon = test_constants::TOLERANCE
         );
     }
 }

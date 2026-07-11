@@ -1,5 +1,6 @@
 use crate::constants;
 use crate::helpers;
+use crate::test_constants;
 use crate::types;
 
 pub struct Sgp4 {
@@ -127,16 +128,17 @@ impl Sgp4 {
 mod tests {
     use super::*;
 
-    const XNO: f64 = 16.05824518 * (constants::TWOPI / constants::XMNPDA);
-    const XINCL: f64 = 72.8435 * constants::DE2RA;
-    const EO: f64 = 0.0086731;
-    const BSTAR: f64 = 0.000066816;
-    const OMEGAO: f64 = 52.6988 * constants::DE2RA;
-    const XMO: f64 = 110.5714 * constants::DE2RA;
-
     #[test]
     fn test_new() {
-        let sgp4 = Sgp4::new(EO, BSTAR, XINCL, OMEGAO, constants::CK4, XMO, XNO);
+        let sgp4 = Sgp4::new(
+            test_constants::EO,
+            test_constants::BSTAR,
+            test_constants::XINCL,
+            test_constants::OMEGAO,
+            constants::CK4,
+            test_constants::XMO,
+            test_constants::XNO,
+        );
 
         assert_eq!(sgp4.xmdot, 0.07006729335201786);
         assert_eq!(sgp4.omgdot, -0.00002971792465285666);
