@@ -156,54 +156,24 @@ impl Sgp4 {
     }
 
     pub fn propagate(&self, tsince: f64) -> types::PositionAndVelocity {
-        let sgaaduo = self.update_for_secular_gravity_and_atmospheric_drag(
-            tsince,
-            self.xmo,
-            self.xmdot,
-            self.omegao,
-            self.omgdot,
-            self.xnodeo,
-            self.xnodot,
-            self.xnodcf,
-            self.bstar,
-            self.omgcof,
-            self.xmcof,
-            self.eta,
-            self.mmasmao.aodp,
-            self.mmasmao.xnodp,
-            self.eo,
-            self.delmo,
-            self.sinmo,
-            self.t2cof,
-            self.t3cof,
-            self.t4cof,
-            self.t5cof,
-            &self.c_constants,
-            &self.d_constants,
-        );
+        let sgaaduo = self.update_for_secular_gravity_and_atmospheric_drag(tsince);
 
-        let (xlt, ayn, axn) = self.long_period_periodics(&sgaaduo, self.xlcof, self.aycof);
+        let (xlt, ayn, axn) = self.long_period_periodics(&sgaaduo);
 
-        let keo = self.keplers_equation(xlt, sgaaduo.xnode, axn, ayn, self.e6a);
+        let keo = self.keplers_equation(xlt, sgaaduo.xnode, axn, ayn);
 
         let (r, rdot, rfdot, temp2, betal, temp1, cos2u, u, sin2u) =
-            self.short_period_prelimenary_quantities(keo, axn, ayn, sgaaduo.a, self.temp1);
+            self.short_period_prelimenary_quantities(keo, axn, ayn, sgaaduo.a);
 
         let spo = self.short_periodics(
             r,
             temp2,
             betal,
-            self.mmasmao.x3thm1,
             temp1,
-            self.x1mth2,
             cos2u,
             u,
-            self.x7thm1,
             sin2u,
             sgaaduo.xnode,
-            self.mmasmao.cosio,
-            self.sinio,
-            self.xincl,
             rdot,
             sgaaduo.xn,
             rfdot,
@@ -217,52 +187,33 @@ impl Sgp4 {
     fn update_for_secular_gravity_and_atmospheric_drag(
         &self,
         tsince: f64,
-        xmo: f64,
-        xmdot: f64,
-        omegao: f64,
-        omgdot: f64,
-        xnodeo: f64,
-        xnodot: f64,
-        xnodcf: f64,
-        bstar: f64,
-        omgcof: f64,
-        xmcof: f64,
-        eta: f64,
-        aodp: f64,
-        xnodp: f64,
-        eo: f64,
-        delmo: f64,
-        sinmo: f64,
-        t2cof: f64,
-        t3cof: f64,
-        t4cof: f64,
-        t5cof: f64,
-        c_constants: &types::CConstants,
-        d_constants: &types::DConstants,
     ) -> types::SecularGravityAndAtmosphericDragUpdateOutput {
-        let xmdf = xmo + xmdot * tsince;
-        let omgadf = omegao + omgdot * tsince;
-        let xnoddf = xnodeo + xnodot * tsince;
+        let xmdf = self.xmo + self.xmdot * tsince;
+        let omgadf = self.omegao + self.omgdot * tsince;
+        let xnoddf = self.xnodeo + self.xnodot * tsince;
         let omega = omgadf;
         let xmp = xmdf;
         let tsq = tsince * tsince;
-        let xnode = xnoddf + xnodcf * tsq;
-        let mut tempa = 1.0 - c_constants.c1 * tsince;
-        let mut tempe = bstar * c_constants.c4 * tsince;
-        let mut templ = t2cof * tsq;
-        let delomg = omgcof * tsince;
-        let delm = xmcof * ((1.0 + eta * xmdf.cos()).powf(3.0) - delmo);
+        let xnode = xnoddf + self.xnodcf * tsq;
+        let mut tempa = 1.0 - self.c_constants.c1 * tsince;
+        let mut tempe = self.bstar * self.c_constants.c4 * tsince;
+        let mut templ = self.t2cof * tsq;
+        let delomg = self.omgcof * tsince;
+        let delm = self.xmcof * ((1.0 + self.eta * xmdf.cos()).powf(3.0) - self.delmo);
         let temp = delomg + delm;
         let xmp = xmdf + temp;
         let omega = omgadf - temp;
         let tcube = tsq * tsince;
         let tfour = tsince * tcube;
-        tempa = tempa - d_constants.d2 * tsq - d_constants.d3 * tcube - d_constants.d4 * tfour;
-        tempe = tempe + bstar * c_constants.c5 * (xmp.sin() - sinmo);
-        templ = templ + t3cof * tcube + tfour * (t4cof + tsince * t5cof);
-        let a = aodp * tempa.powf(2.0);
-        let e = eo - tempe;
-        let xl = xmp + omega + xnode + xnodp * templ;
+        tempa = tempa
+            - self.d_constants.d2 * tsq
+            - self.d_constants.d3 * tcube
+            - self.d_constants.d4 * tfour;
+        tempe = tempe + self.bstar * self.c_constants.c5 * (xmp.sin() - self.sinmo);
+        templ = templ + self.t3cof * tcube + tfour * (self.t4cof + tsince * self.t5cof);
+        let a = self.mmasmao.aodp * tempa.powf(2.0);
+        let e = self.eo - tempe;
+        let xl = xmp + omega + xnode + self.mmasmao.xnodp * templ;
         let beta = (1.0 - e * e).sqrt();
         let xn = constants::XKE / a.powf(1.5);
 
@@ -280,13 +231,11 @@ impl Sgp4 {
     fn long_period_periodics(
         &self,
         sgaaduo: &types::SecularGravityAndAtmosphericDragUpdateOutput,
-        xlcof: f64,
-        aycof: f64,
     ) -> (f64, f64, f64) {
         let axn = sgaaduo.e * sgaaduo.omega.cos();
         let temp = 1.0 / (sgaaduo.a * sgaaduo.beta * sgaaduo.beta);
-        let xll = temp * xlcof * axn;
-        let aynl = temp * aycof;
+        let xll = temp * self.xlcof * axn;
+        let aynl = temp * self.aycof;
         let xlt = sgaaduo.xl + xll;
         let ayn = sgaaduo.e * sgaaduo.omega.sin() + aynl;
 
@@ -298,29 +247,25 @@ impl Sgp4 {
         r: f64,
         temp2: f64,
         betal: f64,
-        x3thm1: f64,
         temp1: f64,
-        x1mth2: f64,
         cos2u: f64,
         u: f64,
-        x7thm1: f64,
         sin2u: f64,
         xnode: f64,
-        cosio: f64,
-        sinio: f64,
-        xincl: f64,
         rdot: f64,
         xn: f64,
         rfdot: f64,
     ) -> types::ShortPeriodicsOutput {
-        let rk = (r * (1.0 - 1.5 * temp2 * betal * x3thm1) + 0.5 * temp1 * x1mth2 * cos2u)
+        let rk = (r * (1.0 - 1.5 * temp2 * betal * self.mmasmao.x3thm1)
+            + 0.5 * temp1 * self.x1mth2 * cos2u)
             * constants::XKMPER;
-        let uk = u - 0.25 * temp2 * x7thm1 * sin2u;
-        let xnodek = xnode + 1.5 * temp2 * cosio * sin2u;
-        let xinck = xincl + 1.5 * temp2 * cosio * sinio * cos2u;
-        let rdotk = (rdot - xn * temp1 * x1mth2 * sin2u) * constants::XKMPER / 60.0;
-        let rfdotk =
-            (rfdot + xn * temp1 * (x1mth2 * cos2u + 1.5 * x3thm1)) * constants::XKMPER / 60.0;
+        let uk = u - 0.25 * temp2 * self.x7thm1 * sin2u;
+        let xnodek = xnode + 1.5 * temp2 * self.mmasmao.cosio * sin2u;
+        let xinck = self.xincl + 1.5 * temp2 * self.mmasmao.cosio * self.sinio * cos2u;
+        let rdotk = (rdot - xn * temp1 * self.x1mth2 * sin2u) * constants::XKMPER / 60.0;
+        let rfdotk = (rfdot + xn * temp1 * (self.x1mth2 * cos2u + 1.5 * self.mmasmao.x3thm1))
+            * constants::XKMPER
+            / 60.0;
 
         types::ShortPeriodicsOutput {
             rk,
@@ -338,7 +283,6 @@ impl Sgp4 {
         xnode: f64,
         axn: f64,
         ayn: f64,
-        e6a: f64,
     ) -> types::KeplersEquationOutput {
         let capu = helpers::fmod2p(xlt - xnode);
         let mut temp2 = capu;
@@ -360,7 +304,7 @@ impl Sgp4 {
             temp6 = ayn * sinepw;
             epw = (capu - temp4 + temp3 - temp2) / (1.0 - temp5 - temp6) + temp2;
 
-            if (epw - temp2).abs() <= e6a {
+            if (epw - temp2).abs() <= self.e6a {
                 break;
             }
 
@@ -384,7 +328,6 @@ impl Sgp4 {
         axn: f64,
         ayn: f64,
         a: f64,
-        temp1: f64,
     ) -> (f64, f64, f64, f64, f64, f64, f64, f64, f64) {
         let ecose = keo.temp5 + keo.temp6;
         let esine = keo.temp3 - keo.temp4;
@@ -546,31 +489,7 @@ mod tests {
 
         let sgp4 = sut();
 
-        let sgaaduo = sgp4.update_for_secular_gravity_and_atmospheric_drag(
-            test_constants::TSINCE,
-            test_constants::XMO,
-            xmdot,
-            test_constants::OMEGAO,
-            omgdot,
-            test_constants::XNODEO,
-            xnodot,
-            xnodcf,
-            test_constants::BSTAR,
-            omgcof,
-            xmcof,
-            eta,
-            aodp,
-            xnodp,
-            test_constants::EO,
-            delmo,
-            sinmo,
-            t2cof,
-            t3cof,
-            t4cof,
-            t5cof,
-            &c_constants,
-            &d_constants,
-        );
+        let sgaaduo = sgp4.update_for_secular_gravity_and_atmospheric_drag(test_constants::TSINCE);
 
         assert_eq!(sgaaduo.e, 0.0086731);
         assert_eq!(sgaaduo.a, 1.040117522759639);
@@ -596,7 +515,7 @@ mod tests {
 
         let sgp4 = sut();
 
-        let (xlt, ayn, axn) = sgp4.long_period_periodics(&sgaaduo, xlcof, aycof);
+        let (xlt, ayn, axn) = sgp4.long_period_periodics(&sgaaduo);
 
         assert_eq!(xlt, 0.07010542434717408);
         assert_eq!(ayn, 0.009741425556977382);
@@ -612,8 +531,7 @@ mod tests {
 
         let sgp4 = sut();
 
-        let keplers_equation_output =
-            sgp4.keplers_equation(xlt, xnode, axn, ayn, test_constants::E6A);
+        let keplers_equation_output = sgp4.keplers_equation(xlt, xnode, axn, ayn);
 
         assert_eq!(keplers_equation_output.temp2, 0.06248313642895434);
         assert_eq!(keplers_equation_output.temp3, 0.0003281941220562471);
@@ -674,8 +592,7 @@ mod tests {
                 rfdotk: 7.727982650878059
             },
             sgp4.short_periodics(
-                r, temp2, betal, x3thm1, temp1, x1mth2, cos2u, u, x7thm1, sin2u, xnode, cosio,
-                sinio, xincl, rdot, xn, rfdot
+                r, temp2, betal, temp1, cos2u, u, sin2u, xnode, rdot, xn, rfdot,
             )
         )
     }
