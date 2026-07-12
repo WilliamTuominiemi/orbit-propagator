@@ -93,3 +93,16 @@ pub struct PositionAndVelocity {
     pub ydot: f64,
     pub zdot: f64,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct RotationMatrix {
+    pub m0: f64,
+    pub m1: f64,
+    pub m2: f64,
+    pub m3: f64,
+    pub m4: f64,
+    pub m5: f64,
+    pub m6: f64,
+    pub m7: f64,
+    pub m8: f64,
+}

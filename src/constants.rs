@@ -11,3 +11,4 @@ pub const XMNPDA: f64 = 1440.0;
 pub const AE: f64 = 1.0;
 pub const DE2RA: f64 = 0.0174532925;
 pub const TWOPI: f64 = 6.2831853;
+pub const PI: f64 = 3.14159265;

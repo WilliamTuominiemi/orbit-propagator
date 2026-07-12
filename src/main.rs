@@ -4,6 +4,7 @@ use egui_plot::Plot;
 use egui_plot::PlotPoints;
 
 mod constants;
+mod ground_track;
 mod helpers;
 mod sgp4;
 mod test_constants;
