@@ -38,7 +38,28 @@ pub struct ShortPeriodicsOutput {
     pub rdotk: f64,
     pub rfdotk: f64,
 }
-#[derive(Debug)]
+
+#[derive(Debug, PartialEq)]
+pub struct LongPeriodicsOutput {
+    pub xlt: f64,
+    pub ayn: f64,
+    pub axn: f64,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ShortPeriodPrelimenaryQuantities {
+    pub r: f64,
+    pub rdot: f64,
+    pub rfdot: f64,
+    pub temp2: f64,
+    pub betal: f64,
+    pub temp1: f64,
+    pub cos2u: f64,
+    pub u: f64,
+    pub sin2u: f64,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct CConstants {
     pub c1: f64,
     pub c2: f64,
@@ -46,7 +67,7 @@ pub struct CConstants {
     pub c4: f64,
     pub c5: f64,
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DConstants {
     pub d2: f64,
     pub d3: f64,

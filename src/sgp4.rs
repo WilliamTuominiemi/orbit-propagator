@@ -9,9 +9,7 @@ pub struct Sgp4 {
     bstar: f64,
     xincl: f64,
     omegao: f64,
-    ck4: f64,
     xmo: f64,
-    xno: f64,
     xnodeo: f64,
     e6a: f64,
     xmdot: f64,
@@ -28,7 +26,6 @@ pub struct Sgp4 {
     xnodot: f64,
     eta: f64,
     sinio: f64,
-    temp1: f64,
     c_constants: types::CConstants,
     d_constants: types::DConstants,
     t2cof: f64,
@@ -125,9 +122,7 @@ impl Sgp4 {
             bstar,
             xincl,
             omegao,
-            ck4,
             xmo,
-            xno,
             xnodeo,
             e6a,
             xmdot,
@@ -144,7 +139,6 @@ impl Sgp4 {
             xnodot,
             eta,
             sinio,
-            temp1,
             c_constants,
             d_constants,
             t2cof,
@@ -157,27 +151,10 @@ impl Sgp4 {
 
     pub fn propagate(&self, tsince: f64) -> types::PositionAndVelocity {
         let sgaaduo = self.update_for_secular_gravity_and_atmospheric_drag(tsince);
-
-        let (xlt, ayn, axn) = self.long_period_periodics(&sgaaduo);
-
-        let keo = self.keplers_equation(xlt, sgaaduo.xnode, axn, ayn);
-
-        let (r, rdot, rfdot, temp2, betal, temp1, cos2u, u, sin2u) =
-            self.short_period_prelimenary_quantities(keo, axn, ayn, sgaaduo.a);
-
-        let spo = self.short_periodics(
-            r,
-            temp2,
-            betal,
-            temp1,
-            cos2u,
-            u,
-            sin2u,
-            sgaaduo.xnode,
-            rdot,
-            sgaaduo.xn,
-            rfdot,
-        );
+        let lpo = self.long_period_periodics(&sgaaduo);
+        let keo = self.keplers_equation(lpo.xlt, sgaaduo.xnode, lpo.axn, lpo.ayn);
+        let sppq = self.short_period_prelimenary_quantities(keo, lpo.axn, lpo.ayn, sgaaduo.a);
+        let spo = self.short_periodics(sppq, sgaaduo.xnode, sgaaduo.xn);
 
         let ov = self.calculate_orientation_vectors(spo.uk, spo.xinck, spo.xnodek);
 
@@ -191,8 +168,6 @@ impl Sgp4 {
         let xmdf = self.xmo + self.xmdot * tsince;
         let omgadf = self.omegao + self.omgdot * tsince;
         let xnoddf = self.xnodeo + self.xnodot * tsince;
-        let omega = omgadf;
-        let xmp = xmdf;
         let tsq = tsince * tsince;
         let xnode = xnoddf + self.xnodcf * tsq;
         let mut tempa = 1.0 - self.c_constants.c1 * tsince;
@@ -231,7 +206,7 @@ impl Sgp4 {
     fn long_period_periodics(
         &self,
         sgaaduo: &types::SecularGravityAndAtmosphericDragUpdateOutput,
-    ) -> (f64, f64, f64) {
+    ) -> types::LongPeriodicsOutput {
         let axn = sgaaduo.e * sgaaduo.omega.cos();
         let temp = 1.0 / (sgaaduo.a * sgaaduo.beta * sgaaduo.beta);
         let xll = temp * self.xlcof * axn;
@@ -239,31 +214,25 @@ impl Sgp4 {
         let xlt = sgaaduo.xl + xll;
         let ayn = sgaaduo.e * sgaaduo.omega.sin() + aynl;
 
-        (xlt, ayn, axn)
+        types::LongPeriodicsOutput { xlt, ayn, axn }
     }
 
     fn short_periodics(
         &self,
-        r: f64,
-        temp2: f64,
-        betal: f64,
-        temp1: f64,
-        cos2u: f64,
-        u: f64,
-        sin2u: f64,
+        sppq: types::ShortPeriodPrelimenaryQuantities,
         xnode: f64,
-        rdot: f64,
         xn: f64,
-        rfdot: f64,
     ) -> types::ShortPeriodicsOutput {
-        let rk = (r * (1.0 - 1.5 * temp2 * betal * self.mmasmao.x3thm1)
-            + 0.5 * temp1 * self.x1mth2 * cos2u)
+        let rk = (sppq.r * (1.0 - 1.5 * sppq.temp2 * sppq.betal * self.mmasmao.x3thm1)
+            + 0.5 * sppq.temp1 * self.x1mth2 * sppq.cos2u)
             * constants::XKMPER;
-        let uk = u - 0.25 * temp2 * self.x7thm1 * sin2u;
-        let xnodek = xnode + 1.5 * temp2 * self.mmasmao.cosio * sin2u;
-        let xinck = self.xincl + 1.5 * temp2 * self.mmasmao.cosio * self.sinio * cos2u;
-        let rdotk = (rdot - xn * temp1 * self.x1mth2 * sin2u) * constants::XKMPER / 60.0;
-        let rfdotk = (rfdot + xn * temp1 * (self.x1mth2 * cos2u + 1.5 * self.mmasmao.x3thm1))
+        let uk = sppq.u - 0.25 * sppq.temp2 * self.x7thm1 * sppq.sin2u;
+        let xnodek = xnode + 1.5 * sppq.temp2 * self.mmasmao.cosio * sppq.sin2u;
+        let xinck = self.xincl + 1.5 * sppq.temp2 * self.mmasmao.cosio * self.sinio * sppq.cos2u;
+        let rdotk =
+            (sppq.rdot - xn * sppq.temp1 * self.x1mth2 * sppq.sin2u) * constants::XKMPER / 60.0;
+        let rfdotk = (sppq.rfdot
+            + xn * sppq.temp1 * (self.x1mth2 * sppq.cos2u + 1.5 * self.mmasmao.x3thm1))
             * constants::XKMPER
             / 60.0;
 
@@ -328,7 +297,7 @@ impl Sgp4 {
         axn: f64,
         ayn: f64,
         a: f64,
-    ) -> (f64, f64, f64, f64, f64, f64, f64, f64, f64) {
+    ) -> types::ShortPeriodPrelimenaryQuantities {
         let ecose = keo.temp5 + keo.temp6;
         let esine = keo.temp3 - keo.temp4;
         let elsq = axn * axn + ayn * ayn;
@@ -350,7 +319,17 @@ impl Sgp4 {
         let temp1 = constants::CK2 * temp;
         temp2 = temp1 * temp;
 
-        (r, rdot, rfdot, temp2, betal, temp1, cos2u, u, sin2u)
+        types::ShortPeriodPrelimenaryQuantities {
+            r,
+            rdot,
+            rfdot,
+            temp2,
+            betal,
+            temp1,
+            cos2u,
+            u,
+            sin2u,
+        }
     }
 
     fn calculate_orientation_vectors(
@@ -423,6 +402,8 @@ fn sut() -> Sgp4 {
 
 #[cfg(test)]
 mod tests {
+    use crate::types::{CConstants, DConstants};
+
     use super::*;
     use approx::assert_abs_diff_eq;
 
@@ -502,47 +483,23 @@ mod tests {
             epsilon = test_constants::SMALL_TOLERANCE
         );
 
-        assert_abs_diff_eq!(
-            sgp4.c_constants.c1,
-            2.3338044215116538e-8,
-            epsilon = test_constants::SMALL_TOLERANCE
-        );
-        assert_abs_diff_eq!(
-            sgp4.c_constants.c2,
-            0.0003492882575298811,
-            epsilon = test_constants::SMALL_TOLERANCE
-        );
-        assert_abs_diff_eq!(
-            sgp4.c_constants.c3,
-            0.004037532255765166,
-            epsilon = test_constants::SMALL_TOLERANCE
-        );
-        assert_abs_diff_eq!(
-            sgp4.c_constants.c4,
-            0.000377201121554739,
-            epsilon = test_constants::SMALL_TOLERANCE
-        );
-        assert_abs_diff_eq!(
-            sgp4.c_constants.c5,
-            0.012334919304344908,
-            epsilon = test_constants::SMALL_TOLERANCE
-        );
+        let expected_c_constants = CConstants {
+            c1: 2.3338044215116538e-8,
+            c2: 0.0003492882575298811,
+            c3: 0.004037532255765166,
+            c4: 0.000377201121554739,
+            c5: 0.012334919304344908,
+        };
 
-        assert_abs_diff_eq!(
-            sgp4.d_constants.d2,
-            8.12550142270866e-14,
-            epsilon = test_constants::SMALL_TOLERANCE
-        );
-        assert_abs_diff_eq!(
-            sgp4.d_constants.d3,
-            4.2372075736327043e-19,
-            epsilon = test_constants::SMALL_TOLERANCE
-        );
-        assert_abs_diff_eq!(
-            sgp4.d_constants.d4,
-            2.5770097992217537e-24,
-            epsilon = test_constants::SMALL_TOLERANCE
-        );
+        assert_eq!(sgp4.c_constants, expected_c_constants);
+
+        let expected_d_constants = DConstants {
+            d2: 8.12550142270866e-14,
+            d3: 4.2372075736327043e-19,
+            d4: 2.5770097992217537e-24,
+        };
+
+        assert_eq!(sgp4.d_constants, expected_d_constants);
     }
 
     #[test]
@@ -572,11 +529,11 @@ mod tests {
 
         let sgp4 = sut();
 
-        let (xlt, ayn, axn) = sgp4.long_period_periodics(&sgaaduo);
+        let lpo = sgp4.long_period_periodics(&sgaaduo);
 
-        assert_eq!(xlt, 0.07010542434717408);
-        assert_eq!(ayn, 0.009741425556977382);
-        assert_eq!(axn, -0.0003928808433640341);
+        assert_eq!(lpo.xlt, 0.07010542434717408);
+        assert_eq!(lpo.ayn, 0.009741425556977382);
+        assert_eq!(lpo.axn, -0.0003928808433640341);
     }
 
     #[test]
@@ -599,17 +556,20 @@ mod tests {
 
     #[test]
     fn test_short_periodics() {
-        let r = 1.0430516048741472;
-        let temp2 = 0.0005004479094222182;
-        let betal = 0.9999543754967234;
-        let temp1 = 0.0005204771435457296;
-        let cos2u = 0.8538389429983284;
-        let u = 2.867852612718983;
-        let sin2u = -0.5205372795674639;
         let xnode = 2.02403913260325;
-        let rdot = 0.0006636054871099481;
         let xn = 0.07010615556528188;
-        let rfdot = 0.07271020474319065;
+
+        let sppq = types::ShortPeriodPrelimenaryQuantities {
+            r: 1.0430516048741472,
+            rdot: 0.0006636054871099481,
+            rfdot: 0.07271020474319065,
+            temp2: 0.0005004479094222182,
+            betal: 0.9999543754967234,
+            temp1: 0.0005204771435457296,
+            cos2u: 0.8538389429983284,
+            u: 2.867852612718983,
+            sin2u: -0.5205372795674639,
+        };
 
         let sgp4 = sut();
 
@@ -622,9 +582,7 @@ mod tests {
                 rdotk: 0.07238614054582597,
                 rfdotk: 7.727982650878059
             },
-            sgp4.short_periodics(
-                r, temp2, betal, temp1, cos2u, u, sin2u, xnode, rdot, xn, rfdot,
-            )
+            sgp4.short_periodics(sppq, xnode, xn,)
         )
     }
 
