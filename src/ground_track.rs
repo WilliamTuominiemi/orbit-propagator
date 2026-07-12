@@ -99,46 +99,43 @@ impl GroundTrack {
         first: types::RotationMatrix,
         second: types::RotationMatrix,
     ) -> types::RotationMatrix {
-        let mut ans = types::RotationMatrix {
-            m0: 0.0,
-            m1: 0.0,
-            m2: 0.0,
-            m3: 0.0,
-            m4: 0.0,
-            m5: 0.0,
-            m6: 0.0,
-            m7: 0.0,
-            m8: 0.0,
-        };
-
         let mut x = first.m0;
         let mut y = first.m1;
         let mut z = first.m2;
-        ans.m0 = x * second.m0 + y * second.m3 + z * second.m6;
-        ans.m1 = x * second.m1 + y * second.m4 + z * second.m7;
-        ans.m2 = x * second.m2 + y * second.m5 + z * second.m8;
+        let m0 = x * second.m0 + y * second.m3 + z * second.m6;
+        let m1 = x * second.m1 + y * second.m4 + z * second.m7;
+        let m2 = x * second.m2 + y * second.m5 + z * second.m8;
 
         x = first.m3;
         y = first.m4;
         z = first.m5;
-        ans.m3 = x * second.m0 + y * second.m3 + z * second.m6;
-        ans.m4 = x * second.m1 + y * second.m4 + z * second.m7;
-        ans.m5 = x * second.m2 + y * second.m5 + z * second.m8;
+        let m3 = x * second.m0 + y * second.m3 + z * second.m6;
+        let m4 = x * second.m1 + y * second.m4 + z * second.m7;
+        let m5 = x * second.m2 + y * second.m5 + z * second.m8;
 
         x = first.m6;
         y = first.m7;
         z = first.m8;
-        ans.m6 = x * second.m0 + y * second.m3 + z * second.m6;
-        ans.m7 = x * second.m1 + y * second.m4 + z * second.m7;
-        ans.m8 = x * second.m2 + y * second.m5 + z * second.m8;
+        let m6 = x * second.m0 + y * second.m3 + z * second.m6;
+        let m7 = x * second.m1 + y * second.m4 + z * second.m7;
+        let m8 = x * second.m2 + y * second.m5 + z * second.m8;
 
-        ans
+        types::RotationMatrix {
+            m0,
+            m1,
+            m2,
+            m3,
+            m4,
+            m5,
+            m6,
+            m7,
+            m8,
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]

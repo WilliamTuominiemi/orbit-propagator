@@ -153,8 +153,8 @@ impl Sgp4 {
         let lpo = self.long_period_periodics(&sgaaduo);
         let keo = self.keplers_equation(lpo.xlt, sgaaduo.xnode, lpo.axn, lpo.ayn);
         let sppq = self.short_period_prelimenary_quantities(keo, lpo.axn, lpo.ayn, sgaaduo.a);
-        let spo = self.short_periodics(sppq, sgaaduo.xnode, sgaaduo.xn);
 
+        let spo = self.short_periodics(sppq, sgaaduo.xnode, sgaaduo.xn);
         let ov = self.calculate_orientation_vectors(spo.uk, spo.xinck, spo.xnodek);
 
         self.calculate_position_and_velocity(ov, spo)
@@ -401,8 +401,6 @@ fn sut() -> Sgp4 {
 
 #[cfg(test)]
 mod tests {
-    use crate::types::{CConstants, DConstants};
-
     use super::*;
     use approx::assert_abs_diff_eq;
 
@@ -482,7 +480,7 @@ mod tests {
             epsilon = test_constants::SMALL_TOLERANCE
         );
 
-        let expected_c_constants = CConstants {
+        let expected_c_constants = types::CConstants {
             c1: 2.3338044215116538e-8,
             c2: 0.0003492882575298811,
             c3: 0.004037532255765166,
@@ -492,7 +490,7 @@ mod tests {
 
         assert_eq!(sgp4.c_constants, expected_c_constants);
 
-        let expected_d_constants = DConstants {
+        let expected_d_constants = types::DConstants {
             d2: 8.12550142270866e-14,
             d3: 4.2372075736327043e-19,
             d4: 2.5770097992217537e-24,
