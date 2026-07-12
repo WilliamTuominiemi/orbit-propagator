@@ -103,6 +103,24 @@ pub fn calculate_d_constants(
     types::DConstants { d2, d3, d4 }
 }
 
+pub fn fmod2p(x: f64) -> f64 {
+    let rev = x / constants::TWOPI;
+    let mut temp = x - (rev.trunc()) * constants::TWOPI;
+    if temp < 0.0 {
+        temp += constants::TWOPI;
+    }
+    temp
+}
+
+pub fn actan(sinx: f64, cosx: f64) -> f64 {
+    let angle = sinx.atan2(cosx);
+    if angle < 0.0 {
+        angle + constants::TWOPI
+    } else {
+        angle
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
