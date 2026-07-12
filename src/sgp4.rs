@@ -2,7 +2,6 @@ use crate::constants;
 use crate::helpers;
 use crate::test_constants;
 use crate::types;
-use crate::types::MeanMotionAndSemimajorAxisOutput;
 
 pub struct Sgp4 {
     eo: f64,
@@ -32,7 +31,7 @@ pub struct Sgp4 {
     t3cof: f64,
     t4cof: f64,
     t5cof: f64,
-    mmasmao: MeanMotionAndSemimajorAxisOutput,
+    mmasmao: types::MeanMotionAndSemimajorAxisOutput,
 }
 
 impl Sgp4 {
