@@ -430,30 +430,119 @@ mod tests {
     fn test_new() {
         let sgp4 = sut();
 
-        assert_eq!(sgp4.xmdot, 0.07006729335201786);
-        assert_eq!(sgp4.omgdot, -0.00002971792465285666);
-        assert_eq!(sgp4.omgcof, 0.00000016348304905484922);
-        assert_eq!(sgp4.xmcof, -0.000049353388663657485);
-        assert_eq!(sgp4.xnodcf, -0.000000000002535821899421168);
-        assert_eq!(sgp4.xlcof, 0.001935745758076399);
-        assert_eq!(sgp4.aycof, 0.0011203600994653647);
-        assert_eq!(sgp4.delmo, 0.6963086765241224);
-        assert_eq!(sgp4.sinmo, 0.9362350466329594);
-        assert_eq!(sgp4.x7thm1, -0.3908964405664701);
-        assert_eq!(sgp4.t2cof, 0.00000003500706632267481);
-        assert_eq!(sgp4.t3cof, 0.00000000000008234434284266006);
-        assert_eq!(sgp4.t4cof, 0.00000000000000000032351134586589164);
-        assert_eq!(sgp4.t5cof, 0.0000000000000000000000015781283156000947);
+        assert_abs_diff_eq!(
+            sgp4.xmdot,
+            0.07006729335201786,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
 
-        assert_eq!(sgp4.c_constants.c1, 2.3338044215116538e-8);
-        assert_eq!(sgp4.c_constants.c2, 0.0003492882575298811);
-        assert_eq!(sgp4.c_constants.c3, 0.004037532255765166);
-        assert_eq!(sgp4.c_constants.c4, 0.000377201121554739);
-        assert_eq!(sgp4.c_constants.c5, 0.012334919304344908);
+        assert_abs_diff_eq!(
+            sgp4.omgdot,
+            -0.00002971792465285666,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.omgcof,
+            0.00000016348304905484922,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.xmcof,
+            -0.000049353388663657485,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.xnodcf,
+            -0.000000000002535821899421168,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.xlcof,
+            0.001935745758076399,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.aycof,
+            0.0011203600994653647,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.delmo,
+            0.6963086765241224,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.sinmo,
+            0.9362350466329594,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.x7thm1,
+            -0.3908964405664701,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.t2cof,
+            0.00000003500706632267481,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.t3cof,
+            0.00000000000008234434284266006,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.t4cof,
+            0.00000000000000000032351134586589164,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.t5cof,
+            0.0000000000000000000000015781283156000947,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
 
-        assert_eq!(sgp4.d_constants.d2, 8.12550142270866e-14);
-        assert_eq!(sgp4.d_constants.d3, 4.2372075736327043e-19);
-        assert_eq!(sgp4.d_constants.d4, 2.5770097992217537e-24);
+        assert_abs_diff_eq!(
+            sgp4.c_constants.c1,
+            2.3338044215116538e-8,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.c_constants.c2,
+            0.0003492882575298811,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.c_constants.c3,
+            0.004037532255765166,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.c_constants.c4,
+            0.000377201121554739,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.c_constants.c5,
+            0.012334919304344908,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+
+        assert_abs_diff_eq!(
+            sgp4.d_constants.d2,
+            8.12550142270866e-14,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.d_constants.d3,
+            4.2372075736327043e-19,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
+        assert_abs_diff_eq!(
+            sgp4.d_constants.d4,
+            2.5770097992217537e-24,
+            epsilon = test_constants::SMALL_TOLERANCE
+        );
     }
 
     #[test]

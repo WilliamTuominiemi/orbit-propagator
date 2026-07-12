@@ -23,3 +23,4 @@ pub const POSITION_AND_VELOCITY_0: types::PositionAndVelocity = types::PositionA
 };
 
 pub const TOLERANCE: f64 = 1e-3;
+pub const SMALL_TOLERANCE: f64 = 1e-12;
