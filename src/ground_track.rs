@@ -1,6 +1,6 @@
 use crate::{
     constants::{self, DE2RA},
-    types::{self, RotationMatrix},
+    types::{self, PositionAndVelocity, RotationMatrix},
 };
 
 pub struct GroundTrack {}
@@ -10,7 +10,20 @@ impl GroundTrack {
         GroundTrack {}
     }
 
-    pub fn eci_to_ecef_rotation_matrix(&self, ut1: f64) -> types::RotationMatrix {
+    pub fn eci_to_ecef(&self, ut1: f64, pav: PositionAndVelocity) -> types::EcefPosition {
+        let rotation_matrix = self.calculate_rotation_matrix(ut1);
+
+        let x =
+            rotation_matrix.m0 * pav.x + rotation_matrix.m1 * pav.y + rotation_matrix.m2 * pav.z;
+        let y =
+            rotation_matrix.m3 * pav.x + rotation_matrix.m4 * pav.y + rotation_matrix.m5 * pav.z;
+        let z =
+            rotation_matrix.m6 * pav.x + rotation_matrix.m7 * pav.y + rotation_matrix.m8 * pav.z;
+
+        types::EcefPosition { x, y, z }
+    }
+
+    fn calculate_rotation_matrix(&self, ut1: f64) -> types::RotationMatrix {
         // precession (gm2000 to mod)
         let mut t = (ut1 - 0.5) / 36525.0;
         let zeta = t * (0.6406161 + t * (0.0000839 + 0.0000050 * t));
@@ -139,12 +152,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_eci_to_ecef_rotation_matrix() {
+    fn test_calculate_rotation_matrix() {
         let ground_track = GroundTrack::new();
 
         let ut1 = 0.5;
 
-        let eterm = ground_track.eci_to_ecef_rotation_matrix(ut1);
+        let eterm = ground_track.calculate_rotation_matrix(ut1);
 
         let expected_output = types::RotationMatrix {
             m0: 0.18155964819521067,

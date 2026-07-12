@@ -106,3 +106,9 @@ pub struct RotationMatrix {
     pub m7: f64,
     pub m8: f64,
 }
+
+pub struct EcefPosition {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+}
