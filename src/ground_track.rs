@@ -19,20 +19,39 @@ impl GroundTrack {
     ) -> types::GeodeticPosition {
         let ecef = self.eci_to_ecef(self.tsince_to_ut1(tsince), pav);
 
-        let lon = ecef.y.atan2(ecef.x);
-        let r = (ecef.x * ecef.x + ecef.y * ecef.y).sqrt();
-        let mut lat = (ecef.z / r).atan();
+        let a = constants::XKMPER * 1000.0;
+        let f: f64 = 1.0 / 298.257223563;
+        let b = a - f * a;
 
-        for _ in 0..5 {
-            let sin_lat = lat.sin();
-            let c = 1.0 / (1.0 - constants::E2 * sin_lat * sin_lat).sqrt();
-            lat = ((ecef.z + constants::XKMPER * c * constants::E2 * sin_lat) / r).atan();
+        let e2 = f * (2.0 - f);
+
+        let clambda = ecef.y.atan2(ecef.x);
+        let p = (ecef.x * ecef.x + ecef.y * ecef.y).sqrt();
+
+        let mut h_old = 0.0;
+        let mut theta = ecef.z.atan2(p * (1.0 - e2));
+        let mut cs = theta.cos();
+        let mut sn = theta.sin();
+
+        let mut n = (a * a) / ((a * cs) * (a * cs) + (b * sn) * (b * sn)).sqrt();
+        let mut h = p / cs - n;
+        let mut iterations = 0;
+
+        while (h - h_old).abs() > 1.0e-6 && iterations < 100 {
+            h_old = h;
+            theta = ecef.z.atan2(p * (1.0 - e2 * n / (n + h)));
+            cs = theta.cos();
+            sn = theta.sin();
+            n = (a * a) / ((a * cs) * (a * cs) + (b * sn) * (b * sn)).sqrt();
+            h = p / cs - n;
+            iterations += 1;
         }
-        let sin_lat = lat.sin();
-        let c = 1.0 / (1.0 - constants::E2 * sin_lat * sin_lat).sqrt();
-        let alt = r / lat.cos() - constants::XKMPER * c;
 
-        types::GeodeticPosition { lat, lon, alt }
+        types::GeodeticPosition {
+            lat: theta,
+            lon: clambda,
+            alt: h,
+        }
     }
 
     fn eci_to_ecef(&self, ut1: f64, pav: PositionAndVelocity) -> types::EcefPosition {
@@ -187,9 +206,9 @@ mod tests {
         let ground_track = GroundTrack::new(-7030.01291535);
 
         let pav = types::PositionAndVelocity {
-            x: 4263871.9243 / 1000.0,
-            y: 722591.1075 / 1000.0,
-            z: 4672986.8878 / 1000.0,
+            x: 4263871.9243,
+            y: 722591.1075,
+            z: 4672986.8878,
             xdot: 0.0,
             ydot: 0.0,
             zdot: 0.0,
@@ -201,7 +220,7 @@ mod tests {
 
         assert_abs_diff_eq!(
             geodetic.lat.to_degrees(),
-            47.30146377343079,
+            47.30146555853809,
             epsilon = test_constants::MID_TOLERANCE
         );
         assert_abs_diff_eq!(
@@ -211,7 +230,7 @@ mod tests {
         );
         assert_abs_diff_eq!(
             geodetic.alt,
-            0.43814924889284157,
+            438.2566027948633,
             epsilon = test_constants::MID_TOLERANCE
         );
     }
