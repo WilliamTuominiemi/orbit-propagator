@@ -107,8 +107,15 @@ pub struct RotationMatrix {
     pub m8: f64,
 }
 
+#[derive(Debug)]
 pub struct EcefPosition {
     pub x: f64,
     pub y: f64,
     pub z: f64,
+}
+
+pub struct GeodeticPosition {
+    pub lat: f64,
+    pub lon: f64,
+    pub alt: f64,
 }

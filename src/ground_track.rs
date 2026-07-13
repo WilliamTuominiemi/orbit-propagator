@@ -3,14 +3,39 @@ use crate::{
     types::{self, PositionAndVelocity, RotationMatrix},
 };
 
-pub struct GroundTrack {}
+pub struct GroundTrack {
+    pub base_ut1: f64,
+}
 
 impl GroundTrack {
-    pub fn new() -> Self {
-        GroundTrack {}
+    pub fn new(base_ut1: f64) -> Self {
+        GroundTrack { base_ut1 }
     }
 
-    pub fn eci_to_ecef(&self, ut1: f64, pav: PositionAndVelocity) -> types::EcefPosition {
+    pub fn eci_to_geodetic(
+        &self,
+        tsince: f64,
+        pav: PositionAndVelocity,
+    ) -> types::GeodeticPosition {
+        let ecef = self.eci_to_ecef(self.tsince_to_ut1(tsince), pav);
+
+        let lon = ecef.y.atan2(ecef.x);
+        let r = (ecef.x * ecef.x + ecef.y * ecef.y).sqrt();
+        let mut lat = (ecef.z / r).atan();
+
+        for _ in 0..5 {
+            let sin_lat = lat.sin();
+            let c = 1.0 / (1.0 - constants::E2 * sin_lat * sin_lat).sqrt();
+            lat = ((ecef.z + constants::XKMPER * c * constants::E2 * sin_lat) / r).atan();
+        }
+        let sin_lat = lat.sin();
+        let c = 1.0 / (1.0 - constants::E2 * sin_lat * sin_lat).sqrt();
+        let alt = r / lat.cos() - constants::XKMPER * c;
+
+        types::GeodeticPosition { lat, lon, alt }
+    }
+
+    fn eci_to_ecef(&self, ut1: f64, pav: PositionAndVelocity) -> types::EcefPosition {
         let rotation_matrix = self.calculate_rotation_matrix(ut1);
 
         let x =
@@ -145,6 +170,10 @@ impl GroundTrack {
             m8,
         }
     }
+
+    fn tsince_to_ut1(&self, tsince: f64) -> f64 {
+        self.base_ut1 + (tsince / 1440.0)
+    }
 }
 
 #[cfg(test)]
@@ -152,10 +181,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_calculate_rotation_matrix() {
-        let ground_track = GroundTrack::new();
+    fn test_eci_to_geodetic() {
+        let ground_track = GroundTrack::new(-7030.01291535);
 
+        let pav = types::PositionAndVelocity {
+            x: 4263871.9243 / 1000.0,
+            y: 722591.1075 / 1000.0,
+            z: 4672986.8878 / 1000.0,
+            xdot: 0.0,
+            ydot: 0.0,
+            zdot: 0.0,
+        };
+
+        let tsince = 0.0;
+
+        let geodetic = ground_track.eci_to_geodetic(tsince, pav);
+
+        assert_eq!(geodetic.lat.to_degrees(), 47.30146377343079);
+        assert_eq!(geodetic.lon.to_degrees(), 3.1469077695449643);
+        assert_eq!(geodetic.alt, 0.43814924889284157);
+    }
+
+    #[test]
+    fn test_calculate_rotation_matrix() {
         let ut1 = 0.5;
+
+        let ground_track = GroundTrack::new(ut1);
 
         let eterm = ground_track.calculate_rotation_matrix(ut1);
 
@@ -200,7 +251,7 @@ mod tests {
             m8: 3.0,
         };
 
-        let ground_track = GroundTrack::new();
+        let ground_track = GroundTrack::new(0.5);
 
         let result = ground_track.multiply_matrix(first, second);
 
