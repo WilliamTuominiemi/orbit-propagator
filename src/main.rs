@@ -16,7 +16,6 @@ fn main() -> eframe::Result {
         test_constants::BSTAR,
         test_constants::XINCL,
         test_constants::OMEGAO,
-        constants::CK4,
         test_constants::XMO,
         test_constants::XNO,
         test_constants::XNODEO,

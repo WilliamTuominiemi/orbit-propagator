@@ -40,7 +40,6 @@ impl Sgp4 {
         bstar: f64,
         xincl: f64,
         omegao: f64,
-        ck4: f64,
         xmo: f64,
         xno: f64,
         xnodeo: f64,
@@ -79,7 +78,7 @@ impl Sgp4 {
         let theta4 = mmasmao.theta2 * mmasmao.theta2;
         let temp1 = 3.0 * constants::CK2 * pinvsq * mmasmao.xnodp;
         let temp2 = temp1 * constants::CK2 * pinvsq;
-        let temp3 = 1.25 * ck4 * pinvsq * pinvsq * mmasmao.xnodp;
+        let temp3 = 1.25 * constants::CK4 * pinvsq * pinvsq * mmasmao.xnodp;
 
         let xmdot = mmasmao.xnodp
             + 0.5 * temp1 * mmasmao.betao * mmasmao.x3thm1
@@ -391,7 +390,6 @@ fn sut() -> Sgp4 {
         test_constants::BSTAR,
         test_constants::XINCL,
         test_constants::OMEGAO,
-        constants::CK4,
         test_constants::XMO,
         test_constants::XNO,
         test_constants::XNODEO,
