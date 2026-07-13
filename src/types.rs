@@ -20,7 +20,6 @@ pub struct SecularGravityAndAtmosphericDragUpdateOutput {
 }
 
 pub struct KeplersEquationOutput {
-    pub temp2: f64,
     pub temp3: f64,
     pub temp4: f64,
     pub temp5: f64,

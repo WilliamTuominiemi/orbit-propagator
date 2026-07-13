@@ -279,7 +279,6 @@ impl Sgp4 {
         }
 
         types::KeplersEquationOutput {
-            temp2,
             temp3,
             temp4,
             temp5,
@@ -542,7 +541,6 @@ mod tests {
 
         let keplers_equation_output = sgp4.keplers_equation(xlt, xnode, axn, ayn);
 
-        assert_eq!(keplers_equation_output.temp2, 0.06248313642895434);
         assert_eq!(keplers_equation_output.temp3, 0.0003281941220562471);
         assert_eq!(keplers_equation_output.temp4, 0.007960774282990234);
         assert_eq!(keplers_equation_output.temp5, 0.0052456858611741215);
