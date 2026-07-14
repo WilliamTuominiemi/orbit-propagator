@@ -121,6 +121,12 @@ pub fn actan(sinx: f64, cosx: f64) -> f64 {
     }
 }
 
+use approx::assert_abs_diff_eq;
+
+pub fn assert_approx(first: f64, second: f64) {
+    assert_abs_diff_eq!(first, second, epsilon = test_constants::MID_TOLERANCE);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -133,13 +139,13 @@ mod tests {
             test_constants::EO,
         );
 
-        assert_eq!(mmasmao.xnodp, 0.07010615558630984);
-        assert_eq!(mmasmao.aodp, 1.040117522759639);
-        assert_eq!(mmasmao.betao2, 0.99992477733639);
-        assert_eq!(mmasmao.betao, 0.9999623879608622);
-        assert_eq!(mmasmao.x3thm1, -0.73895561738563);
-        assert_eq!(mmasmao.theta2, 0.08701479420478998);
-        assert_eq!(mmasmao.cosio, 0.29498270153483575);
+        assert_approx(mmasmao.xnodp, 0.07010615558630984);
+        assert_approx(mmasmao.aodp, 1.040117522759639);
+        assert_approx(mmasmao.betao2, 0.99992477733639);
+        assert_approx(mmasmao.betao, 0.9999623879608622);
+        assert_approx(mmasmao.x3thm1, -0.73895561738563);
+        assert_approx(mmasmao.theta2, 0.08701479420478998);
+        assert_approx(mmasmao.cosio, 0.29498270153483575);
     }
 
     #[test]

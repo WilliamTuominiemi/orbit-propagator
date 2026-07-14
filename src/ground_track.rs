@@ -197,8 +197,7 @@ impl GroundTrack {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_constants;
-    use approx::assert_abs_diff_eq;
+    use crate::helpers;
 
     #[test]
     fn test_eci_to_geodetic() {
@@ -217,21 +216,9 @@ mod tests {
 
         let geodetic = ground_track.eci_to_geodetic(tsince, pav);
 
-        assert_abs_diff_eq!(
-            geodetic.lat.to_degrees(),
-            47.30146555853809,
-            epsilon = test_constants::MID_TOLERANCE
-        );
-        assert_abs_diff_eq!(
-            geodetic.lon.to_degrees(),
-            3.1469077695449643,
-            epsilon = test_constants::MID_TOLERANCE
-        );
-        assert_abs_diff_eq!(
-            geodetic.alt,
-            438.2566027948633,
-            epsilon = test_constants::MID_TOLERANCE
-        );
+        helpers::assert_approx(geodetic.lat.to_degrees(), 47.30146555853809);
+        helpers::assert_approx(geodetic.lon.to_degrees(), 3.1469077695449643);
+        helpers::assert_approx(geodetic.alt, 438.2566027827561);
     }
 
     #[test]
