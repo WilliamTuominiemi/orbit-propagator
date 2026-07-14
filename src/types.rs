@@ -20,12 +20,10 @@ pub struct SecularGravityAndAtmosphericDragUpdateOutput {
 }
 
 pub struct KeplersEquationOutput {
-    pub temp3: f64,
-    pub temp4: f64,
-    pub temp5: f64,
-    pub temp6: f64,
     pub sinepw: f64,
     pub cosepw: f64,
+    pub ecose: f64,
+    pub esine: f64,
 }
 
 #[derive(Debug, PartialEq)]

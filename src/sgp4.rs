@@ -163,30 +163,29 @@ impl Sgp4 {
         &self,
         tsince: f64,
     ) -> types::SecularGravityAndAtmosphericDragUpdateOutput {
-        let xmdf = self.xmo + self.xmdot * tsince;
-        let omgadf = self.omegao + self.omgdot * tsince;
-        let xnoddf = self.xnodeo + self.xnodot * tsince;
+        let types::DConstants { d2, d3, d4 } = self.d_constants;
+        let types::CConstants { c1, c2, c3, c4, c5 } = self.c_constants;
+
         let tsq = tsince * tsince;
-        let xnode = xnoddf + self.xnodcf * tsq;
-        let mut tempa = 1.0 - self.c_constants.c1 * tsince;
-        let mut tempe = self.bstar * self.c_constants.c4 * tsince;
-        let mut templ = self.t2cof * tsq;
-        let delomg = self.omgcof * tsince;
-        let delm = self.xmcof * ((1.0 + self.eta * xmdf.cos()).powf(3.0) - self.delmo);
-        let temp = delomg + delm;
+
+        let xmdf = self.xmo + self.xmdot * tsince;
+        let xnode = self.xnodeo + self.xnodot * tsince + self.xnodcf * tsq;
+        let temp = self.omgcof * tsince
+            + self.xmcof * ((1.0 + self.eta * xmdf.cos()).powi(3) - self.delmo);
         let xmp = xmdf + temp;
-        let omega = omgadf - temp;
+        let omega = self.omegao + self.omgdot * tsince - temp;
         let tcube = tsq * tsince;
         let tfour = tsince * tcube;
-        tempa = tempa
-            - self.d_constants.d2 * tsq
-            - self.d_constants.d3 * tcube
-            - self.d_constants.d4 * tfour;
-        tempe = tempe + self.bstar * self.c_constants.c5 * (xmp.sin() - self.sinmo);
-        templ = templ + self.t3cof * tcube + tfour * (self.t4cof + tsince * self.t5cof);
-        let a = self.mmasmao.aodp * tempa.powf(2.0);
-        let e = self.eo - tempe;
-        let xl = xmp + omega + xnode + self.mmasmao.xnodp * templ;
+
+        let a =
+            self.mmasmao.aodp * ((1.0 - c1 * tsince) - d2 * tsq - d3 * tcube - d4 * tfour).powi(2);
+        let e = self.eo - (self.bstar * c4 * tsince) + self.bstar * c5 * (xmp.sin() - self.sinmo);
+        let xl = xmp
+            + omega
+            + xnode
+            + self.mmasmao.xnodp * (self.t2cof * tsq)
+            + self.t3cof * tcube
+            + tfour * (self.t4cof + tsince * self.t5cof);
         let beta = (1.0 - e * e).sqrt();
         let xn = constants::XKE / a.powf(1.5);
 
@@ -207,9 +206,8 @@ impl Sgp4 {
     ) -> types::LongPeriodicsOutput {
         let axn = sgaaduo.e * sgaaduo.omega.cos();
         let temp = 1.0 / (sgaaduo.a * sgaaduo.beta * sgaaduo.beta);
-        let xll = temp * self.xlcof * axn;
         let aynl = temp * self.aycof;
-        let xlt = sgaaduo.xl + xll;
+        let xlt = sgaaduo.xl + temp * self.xlcof * axn;
         let ayn = sgaaduo.e * sgaaduo.omega.sin() + aynl;
 
         types::LongPeriodicsOutput { xlt, ayn, axn }
@@ -252,39 +250,41 @@ impl Sgp4 {
         ayn: f64,
     ) -> types::KeplersEquationOutput {
         let capu = helpers::fmod2p(xlt - xnode);
-        let mut temp2 = capu;
-        let mut temp3 = 0.0;
-        let mut temp4 = 0.0;
-        let mut temp5 = 0.0;
-        let mut temp6 = 0.0;
-        let mut epw = temp2;
+        let mut epw = capu;
 
         let mut sinepw = 0.0;
         let mut cosepw = 0.0;
+        let mut ecose = 0.0;
+        let mut esine = 0.0;
 
         for _ in 0..10 {
-            sinepw = temp2.sin();
-            cosepw = temp2.cos();
-            temp3 = axn * sinepw;
-            temp4 = ayn * cosepw;
-            temp5 = axn * cosepw;
-            temp6 = ayn * sinepw;
-            epw = (capu - temp4 + temp3 - temp2) / (1.0 - temp5 - temp6) + temp2;
+            let (s, c) = epw.sin_cos();
+            sinepw = s;
+            cosepw = c;
 
-            if (epw - temp2).abs() <= self.e6a {
+            let axn_sinepw = axn * sinepw;
+            let ayn_cosepw = ayn * cosepw;
+            let axn_cosepw = axn * cosepw;
+            let ayn_sinepw = ayn * sinepw;
+
+            ecose = axn_cosepw + ayn_sinepw;
+            esine = axn_sinepw - ayn_cosepw;
+
+            let next_epw =
+                (capu - ayn_cosepw + axn_sinepw - epw) / (1.0 - axn_cosepw - ayn_sinepw) + epw;
+            let converged = (next_epw - epw).abs() <= self.e6a;
+            epw = next_epw;
+
+            if converged {
                 break;
             }
-
-            temp2 = epw;
         }
 
         types::KeplersEquationOutput {
-            temp3,
-            temp4,
-            temp5,
-            temp6,
             sinepw,
             cosepw,
+            ecose,
+            esine,
         }
     }
 
@@ -295,20 +295,17 @@ impl Sgp4 {
         ayn: f64,
         a: f64,
     ) -> types::ShortPeriodPrelimenaryQuantities {
-        let ecose = keo.temp5 + keo.temp6;
-        let esine = keo.temp3 - keo.temp4;
-        let elsq = axn * axn + ayn * ayn;
-        let temp = 1.0 - elsq;
+        let temp = 1.0 - axn * axn + ayn * ayn;
         let pl = a * temp;
-        let r = a * (1.0 - ecose);
+        let r = a * (1.0 - keo.ecose);
         let temp1 = 1.0 / r;
-        let rdot = constants::XKE * a.sqrt() * esine * temp1;
+        let rdot = constants::XKE * a.sqrt() * keo.esine * temp1;
         let rfdot = constants::XKE * pl.sqrt() * temp1;
         let mut temp2 = a * temp1;
         let betal = temp.sqrt();
         let temp3 = 1.0 / (1.0 + betal);
-        let cosu = temp2 * (keo.cosepw - axn + ayn * esine * temp3);
-        let sinu = temp2 * (keo.sinepw - ayn - axn * esine * temp3);
+        let cosu = temp2 * (keo.cosepw - axn + ayn * keo.esine * temp3);
+        let sinu = temp2 * (keo.sinepw - ayn - axn * keo.esine * temp3);
         let u = helpers::actan(sinu, cosu);
         let sin2u = 2.0 * sinu * cosu;
         let cos2u = 2.0 * cosu * cosu - 1.0;
@@ -541,10 +538,10 @@ mod tests {
 
         let keplers_equation_output = sgp4.keplers_equation(xlt, xnode, axn, ayn);
 
-        assert_eq!(keplers_equation_output.temp3, 0.0003281941220562471);
-        assert_eq!(keplers_equation_output.temp4, 0.007960774282990234);
-        assert_eq!(keplers_equation_output.temp5, 0.0052456858611741215);
-        assert_eq!(keplers_equation_output.temp6, 0.0004980624833125527);
+        assert_eq!(keplers_equation_output.cosepw, 0.9980485638453306);
+        assert_eq!(keplers_equation_output.sinepw, 0.06244248718839627);
+        assert_eq!(keplers_equation_output.ecose, 0.005743748344486674);
+        assert_eq!(keplers_equation_output.esine, -0.0076325801609339865);
     }
 
     #[test]
