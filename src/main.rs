@@ -1,4 +1,5 @@
 use eframe::egui;
+use eframe::egui::{Color32, Frame, Margin};
 use egui_plot::Line;
 use egui_plot::Plot;
 use egui_plot::PlotPoints;
@@ -50,18 +51,44 @@ fn main() -> eframe::Result {
     let gt = ground_track::GroundTrack::new(test_epoch);
     let points = init_points(&sgp4, &gt);
 
+    render(points)
+}
+
+fn render(points: Vec<[f64; 2]>) -> eframe::Result {
+    let window_size = egui::vec2(500.0, 240.0);
+
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([500.0, 240.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size(window_size),
         ..Default::default()
     };
-    eframe::run_ui_native("Janus", options, move |ctx, _frame| {
-        egui::CentralPanel::default().show_inside(ctx, |ui| {
-            let orbit = PlotPoints::new(points.clone());
-            let line = Line::new("orbit", orbit);
+    eframe::run_ui_native("Janus", options, move |ui, _frame| {
+        egui_extras::install_image_loaders(ui.ctx());
 
-            Plot::new("my_plot")
-                .view_aspect(2.0)
-                .show(ui, |plot_ui| plot_ui.line(line));
-        });
+        egui::CentralPanel::default()
+            .frame(
+                Frame::new()
+                    .inner_margin({
+                        let margins = egui::vec2(window_size.x * 0.05, window_size.y * 0.05);
+                        Margin::symmetric(margins.x as i8, margins.y as i8)
+                    })
+                    .fill(Color32::WHITE),
+            )
+            .show_inside(ui, |ui| {
+                egui::Image::new(egui::include_image!(".././images/map.png")).paint_at(
+                    ui,
+                    egui::Rect::from_min_max(
+                        [0.0, 0.0].into(),
+                        [window_size.x, window_size.y].into(),
+                    ),
+                );
+
+                let orbit = PlotPoints::new(points.clone());
+                let line = Line::new("orbit", orbit);
+
+                Plot::new("my_plot")
+                    .view_aspect(2.0)
+                    .show_background(false)
+                    .show(ui, |plot_ui| plot_ui.line(line));
+            });
     })
 }
