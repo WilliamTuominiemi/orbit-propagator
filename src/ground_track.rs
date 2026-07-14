@@ -1,7 +1,5 @@
-use crate::{
-    constants::{self, DE2RA},
-    types::{self, PositionAndVelocity, RotationMatrix},
-};
+use crate::constants;
+use crate::types;
 
 pub struct GroundTrack {
     pub base_ut1: f64,
@@ -15,7 +13,7 @@ impl GroundTrack {
     pub fn eci_to_geodetic(
         &self,
         tsince: f64,
-        pav: PositionAndVelocity,
+        pav: types::PositionAndVelocity,
     ) -> types::GeodeticPosition {
         let ecef = self.eci_to_ecef(self.tsince_to_ut1(tsince), pav);
 
@@ -54,7 +52,7 @@ impl GroundTrack {
         }
     }
 
-    fn eci_to_ecef(&self, ut1: f64, pav: PositionAndVelocity) -> types::EcefPosition {
+    fn eci_to_ecef(&self, ut1: f64, pav: types::PositionAndVelocity) -> types::EcefPosition {
         let rotation_matrix = self.calculate_rotation_matrix(ut1);
 
         let x =
@@ -94,7 +92,7 @@ impl GroundTrack {
 
         // earth rotation (tod to pef)
         t = ut1;
-        let g = 99.96779469 + t * (360.9856473662860 + 0.29079e-12 * t);
+        let g = 99.96779469 + t * (360.985_647_366_286 + 0.29079e-12 * t);
         let h = g * constants::DE2RA + dmu;
         let m3 = self.calc_rz(h);
 
@@ -134,6 +132,7 @@ impl GroundTrack {
             m8: cs,
         }
     }
+
     fn calc_rz(&self, theta: f64) -> types::RotationMatrix {
         let cs = theta.cos();
         let sn = theta.sin();
