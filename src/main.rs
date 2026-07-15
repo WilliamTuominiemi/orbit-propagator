@@ -55,7 +55,7 @@ fn main() -> eframe::Result {
 }
 
 fn render(points: Vec<[f64; 2]>) -> eframe::Result {
-    let window_size = egui::vec2(500.0, 240.0);
+    let window_size = egui::vec2(1000.0, 500.0);
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size(window_size),
@@ -64,31 +64,24 @@ fn render(points: Vec<[f64; 2]>) -> eframe::Result {
     eframe::run_ui_native("Janus", options, move |ui, _frame| {
         egui_extras::install_image_loaders(ui.ctx());
 
-        egui::CentralPanel::default()
-            .frame(
-                Frame::new()
-                    .inner_margin({
-                        let margins = egui::vec2(window_size.x * 0.05, window_size.y * 0.05);
-                        Margin::symmetric(margins.x as i8, margins.y as i8)
-                    })
-                    .fill(Color32::WHITE),
-            )
-            .show_inside(ui, |ui| {
-                egui::Image::new(egui::include_image!(".././images/map.png")).paint_at(
-                    ui,
-                    egui::Rect::from_min_max(
-                        [0.0, 0.0].into(),
-                        [window_size.x, window_size.y].into(),
-                    ),
-                );
+        egui::CentralPanel::default().show_inside(ui, |ui| {
+            egui::Image::new(egui::include_image!(".././images/map.png")).paint_at(
+                ui,
+                egui::Rect::from_min_max([0.0, 0.0].into(), [window_size.x, window_size.y].into()),
+            );
 
-                let orbit = PlotPoints::new(points.clone());
-                let line = Line::new("orbit", orbit);
+            let orbit = PlotPoints::new(points.clone());
+            let line = Line::new("orbit", orbit).width(3.0).color(Color32::ORANGE);
 
-                Plot::new("my_plot")
-                    .view_aspect(2.0)
-                    .show_background(false)
-                    .show(ui, |plot_ui| plot_ui.line(line));
-            });
+            Plot::new("my_plot")
+                .view_aspect(2.0)
+                .show_background(false)
+                .allow_drag(false)
+                .allow_zoom(false)
+                .allow_scroll(false)
+                .grid_color(Color32::WHITE)
+                .show_axes(false)
+                .show(ui, |plot_ui| plot_ui.line(line));
+        });
     })
 }

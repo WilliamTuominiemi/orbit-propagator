@@ -2,6 +2,8 @@
 
 Implementation of the SGP4 from the [NORAD SPACETRACK REPORT NO. 3](https://archive.aoe.vt.edu/cliff/aoe4134/spacetrk.pdf). Turns input data from satellite into a graph representation of where over the earth it is located.
 
+![demo](images/demo.png)
+
 # Sample test case
 
 Test case from SPACETRACK REPORT NO. 3 with inputs and outputs, used to validate SGP4 part of implementation.
@@ -38,7 +40,3 @@ When TSINCE: 0, so the first dot on the graph.
 The X, Y and Z are in ECI format, which can't be displayed on a 2D graph. 
 
 They are converted ECI [-> ECEF](https://space.stackexchange.com/questions/38807/transform-eci-to-ecef) [-> Geodetic](https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#The_application_of_Ferrari's_solution)
-
-## Graph
-
-![demo](images/demo.png)
