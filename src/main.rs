@@ -1,5 +1,5 @@
 use eframe::egui;
-use eframe::egui::{Color32, Frame, Margin};
+use eframe::egui::Color32;
 use egui_plot::Line;
 use egui_plot::Plot;
 use egui_plot::PlotPoints;
@@ -55,7 +55,8 @@ fn main() -> eframe::Result {
 }
 
 fn render(points: Vec<[f64; 2]>) -> eframe::Result {
-    let window_size = egui::vec2(1000.0, 500.0);
+    let window_size = egui::vec2(1400.0, 600.0);
+    let control_pane_width = 200.0;
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size(window_size),
@@ -64,17 +65,40 @@ fn render(points: Vec<[f64; 2]>) -> eframe::Result {
     eframe::run_ui_native("Janus", options, move |ui, _frame| {
         egui_extras::install_image_loaders(ui.ctx());
 
+        egui::Panel::left("my_left_panel")
+            .exact_size(control_pane_width)
+            .show_inside(ui, |ui| {
+                ui.label(
+                    egui::RichText::new("NORAD SPACETRACK REPORT No.3 SGP4 Sample test case")
+                        .underline(),
+                );
+                ui.label(format!("Eccentricity (EO): {}", test_constants::EO));
+                ui.label(format!("Mean Motion (XNO): {}", test_constants::XNO));
+                ui.label(format!("Mean Anomaly (XMO): {}", test_constants::XMO));
+                ui.label(format!("Inclination (XINCL): {}", test_constants::XINCL));
+                ui.label(format!(
+                    "Right Ascension of the Ascending Node (XNODEO): {}",
+                    test_constants::XNODEO
+                ));
+                ui.label(format!(
+                    "Argument of Perigee (OMEGAO): {}",
+                    test_constants::OMEGAO
+                ));
+                ui.label(format!(
+                    "B-Star Drag Term (BSTAR): {}",
+                    test_constants::BSTAR
+                ));
+            });
+
         egui::CentralPanel::default().show_inside(ui, |ui| {
-            egui::Image::new(egui::include_image!(".././images/map.png")).paint_at(
-                ui,
-                egui::Rect::from_min_max([0.0, 0.0].into(), [window_size.x, window_size.y].into()),
-            );
+            let panel_rect = ui.available_rect_before_wrap();
+
+            egui::Image::new(egui::include_image!(".././images/map.png")).paint_at(ui, panel_rect);
 
             let orbit = PlotPoints::new(points.clone());
             let line = Line::new("orbit", orbit).width(3.0).color(Color32::ORANGE);
 
             Plot::new("my_plot")
-                .view_aspect(2.0)
                 .show_background(false)
                 .allow_drag(false)
                 .allow_zoom(false)
