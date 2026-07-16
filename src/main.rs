@@ -62,6 +62,15 @@ fn render(points: Vec<[f64; 2]>) -> eframe::Result {
         viewport: egui::ViewportBuilder::default().with_inner_size(window_size),
         ..Default::default()
     };
+
+    let mut eo = test_constants::EO.to_string();
+    let mut xno = test_constants::XNO.to_string();
+    let mut xmo = test_constants::XMO.to_string();
+    let mut xincl = test_constants::XINCL.to_string();
+    let mut xnodeo = test_constants::XNODEO.to_string();
+    let mut omegao = test_constants::OMEGAO.to_string();
+    let mut bstar = test_constants::BSTAR.to_string();
+
     eframe::run_ui_native("Janus", options, move |ui, _frame| {
         egui_extras::install_image_loaders(ui.ctx());
 
@@ -72,22 +81,27 @@ fn render(points: Vec<[f64; 2]>) -> eframe::Result {
                     egui::RichText::new("NORAD SPACETRACK REPORT No.3 SGP4 Sample test case")
                         .underline(),
                 );
-                ui.label(format!("Eccentricity (EO): {}", test_constants::EO));
-                ui.label(format!("Mean Motion (XNO): {}", test_constants::XNO));
-                ui.label(format!("Mean Anomaly (XMO): {}", test_constants::XMO));
-                ui.label(format!("Inclination (XINCL): {}", test_constants::XINCL));
-                ui.label(format!(
-                    "Right Ascension of the Ascending Node (XNODEO): {}",
-                    test_constants::XNODEO
-                ));
-                ui.label(format!(
-                    "Argument of Perigee (OMEGAO): {}",
-                    test_constants::OMEGAO
-                ));
-                ui.label(format!(
-                    "B-Star Drag Term (BSTAR): {}",
-                    test_constants::BSTAR
-                ));
+
+                ui.label("Eccentricity (EO)");
+                let eo_input = ui.add(egui::TextEdit::singleline(&mut eo));
+
+                ui.label("Mean Motion (XNO)");
+                let xno_input = ui.add(egui::TextEdit::singleline(&mut xno));
+
+                ui.label("Mean Anomaly (XMO)");
+                let xno_input = ui.add(egui::TextEdit::singleline(&mut xmo));
+
+                ui.label("Inclination (XINCL)");
+                let xno_input = ui.add(egui::TextEdit::singleline(&mut xincl));
+
+                ui.label("Right Ascension of the Ascending Node (XNODEO)");
+                let xno_input = ui.add(egui::TextEdit::singleline(&mut xnodeo));
+
+                ui.label("Argument of Perigee (OMEGAO)");
+                let xno_input = ui.add(egui::TextEdit::singleline(&mut omegao));
+
+                ui.label("B-Star Drag Term (BSTAR)");
+                let xno_input = ui.add(egui::TextEdit::singleline(&mut bstar));
             });
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
