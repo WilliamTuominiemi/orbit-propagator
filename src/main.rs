@@ -1,17 +1,12 @@
-use eframe::egui;
-use eframe::egui::Color32;
-use egui_plot::Line;
-use egui_plot::Plot;
-use egui_plot::PlotPoints;
-
 mod constants;
 mod ground_track;
 mod helpers;
+mod renderer;
 mod sgp4;
 mod test_constants;
 mod types;
 
-fn init_points(sgp4: &sgp4::Sgp4, gt: &ground_track::GroundTrack) -> Vec<[f64; 2]> {
+fn calculate_points(sgp4: &sgp4::Sgp4, gt: &ground_track::GroundTrack) -> Vec<[f64; 2]> {
     let mut points = Vec::new();
     let mut last_lon = 0.0;
 
@@ -35,91 +30,38 @@ fn init_points(sgp4: &sgp4::Sgp4, gt: &ground_track::GroundTrack) -> Vec<[f64; 2
 }
 
 fn main() -> eframe::Result {
+    let eo = test_constants::EO;
+    let xno = test_constants::XNO;
+    let xmo = test_constants::XMO;
+    let xincl = test_constants::XINCL;
+    let xnodeo = test_constants::XNODEO;
+    let omegao = test_constants::OMEGAO;
+    let bstar = test_constants::BSTAR;
+
     let sgp4 = sgp4::Sgp4::new(
-        test_constants::EO,
-        test_constants::BSTAR,
-        test_constants::XINCL,
-        test_constants::OMEGAO,
-        test_constants::XMO,
-        test_constants::XNO,
-        test_constants::XNODEO,
+        eo,
+        bstar,
+        xincl,
+        omegao,
+        xmo,
+        xno,
+        xnodeo,
         test_constants::E6A,
     );
 
-    // Initialize with the Spacetrack Report No. 3 base epoch
-    let test_epoch = -7030.01291535;
+    let test_epoch = -7030.01291535; // Spacetrack Report No. 3 base epoch
     let gt = ground_track::GroundTrack::new(test_epoch);
-    let points = init_points(&sgp4, &gt);
+    let points = calculate_points(&sgp4, &gt);
 
-    render(points)
-}
-
-fn render(points: Vec<[f64; 2]>) -> eframe::Result {
-    let window_size = egui::vec2(1400.0, 600.0);
-    let control_pane_width = 200.0;
-
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size(window_size),
-        ..Default::default()
+    let mut renderer = renderer::Renderer {
+        eo,
+        bstar,
+        xincl,
+        omegao,
+        xmo,
+        xno,
+        xnodeo,
     };
 
-    let mut eo = test_constants::EO.to_string();
-    let mut xno = test_constants::XNO.to_string();
-    let mut xmo = test_constants::XMO.to_string();
-    let mut xincl = test_constants::XINCL.to_string();
-    let mut xnodeo = test_constants::XNODEO.to_string();
-    let mut omegao = test_constants::OMEGAO.to_string();
-    let mut bstar = test_constants::BSTAR.to_string();
-
-    eframe::run_ui_native("Janus", options, move |ui, _frame| {
-        egui_extras::install_image_loaders(ui.ctx());
-
-        egui::Panel::left("my_left_panel")
-            .exact_size(control_pane_width)
-            .show_inside(ui, |ui| {
-                ui.label(
-                    egui::RichText::new("NORAD SPACETRACK REPORT No.3 SGP4 Sample test case")
-                        .underline(),
-                );
-
-                ui.label("Eccentricity (EO)");
-                let eo_input = ui.add(egui::TextEdit::singleline(&mut eo));
-
-                ui.label("Mean Motion (XNO)");
-                let xno_input = ui.add(egui::TextEdit::singleline(&mut xno));
-
-                ui.label("Mean Anomaly (XMO)");
-                let xno_input = ui.add(egui::TextEdit::singleline(&mut xmo));
-
-                ui.label("Inclination (XINCL)");
-                let xno_input = ui.add(egui::TextEdit::singleline(&mut xincl));
-
-                ui.label("Right Ascension of the Ascending Node (XNODEO)");
-                let xno_input = ui.add(egui::TextEdit::singleline(&mut xnodeo));
-
-                ui.label("Argument of Perigee (OMEGAO)");
-                let xno_input = ui.add(egui::TextEdit::singleline(&mut omegao));
-
-                ui.label("B-Star Drag Term (BSTAR)");
-                let xno_input = ui.add(egui::TextEdit::singleline(&mut bstar));
-            });
-
-        egui::CentralPanel::default().show_inside(ui, |ui| {
-            let panel_rect = ui.available_rect_before_wrap();
-
-            egui::Image::new(egui::include_image!(".././images/map.png")).paint_at(ui, panel_rect);
-
-            let orbit = PlotPoints::new(points.clone());
-            let line = Line::new("orbit", orbit).width(3.0).color(Color32::ORANGE);
-
-            Plot::new("my_plot")
-                .show_background(false)
-                .allow_drag(false)
-                .allow_zoom(false)
-                .allow_scroll(false)
-                .grid_color(Color32::WHITE)
-                .show_axes(false)
-                .show(ui, |plot_ui| plot_ui.line(line));
-        });
-    })
+    renderer.render(points)
 }
