@@ -4,6 +4,8 @@ use egui_plot::Line;
 use egui_plot::Plot;
 use egui_plot::PlotPoints;
 
+use crate::test_constants;
+
 pub struct Renderer {
     pub eo: f64,
     pub xno: f64,
@@ -12,77 +14,152 @@ pub struct Renderer {
     pub xnodeo: f64,
     pub omegao: f64,
     pub bstar: f64,
+    eo_str: String,
+    xno_str: String,
+    xmo_str: String,
+    xincl_str: String,
+    xnodeo_str: String,
+    omegao_str: String,
+    bstar_str: String,
+    points: Vec<[f64; 2]>,
+    pub compute_points: fn(f64, f64, f64, f64, f64, f64, f64) -> Vec<[f64; 2]>,
 }
 
 impl Renderer {
-    pub fn render(&mut self, points: Vec<[f64; 2]>) -> eframe::Result {
+    pub fn new(compute_points: fn(f64, f64, f64, f64, f64, f64, f64) -> Vec<[f64; 2]>) -> Self {
+        let eo = test_constants::EO;
+        let xno = test_constants::XNO;
+        let xmo = test_constants::XMO;
+        let xincl = test_constants::XINCL;
+        let xnodeo = test_constants::XNODEO;
+        let omegao = test_constants::OMEGAO;
+        let bstar = test_constants::BSTAR;
+
+        let points = compute_points(eo, bstar, xincl, omegao, xmo, xno, xnodeo);
+
+        Self {
+            eo_str: eo.to_string(),
+            xno_str: xno.to_string(),
+            xmo_str: xmo.to_string(),
+            xincl_str: xincl.to_string(),
+            xnodeo_str: xnodeo.to_string(),
+            omegao_str: omegao.to_string(),
+            bstar_str: bstar.to_string(),
+            eo,
+            xno,
+            xmo,
+            xincl,
+            xnodeo,
+            omegao,
+            bstar,
+            points,
+            compute_points,
+        }
+    }
+
+    pub fn run(self) -> eframe::Result {
         let window_size = egui::vec2(1400.0, 600.0);
-        let control_pane_width = 200.0;
 
         let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default().with_inner_size(window_size),
             ..Default::default()
         };
 
-        let mut eo = self.eo.to_string();
-        let mut xno = self.xno.to_string();
-        let mut xmo = self.xmo.to_string();
-        let mut xincl = self.xincl.to_string();
-        let mut xnodeo = self.xnodeo.to_string();
-        let mut omegao = self.omegao.to_string();
-        let mut bstar = self.bstar.to_string();
+        eframe::run_native(
+            "Janus",
+            options,
+            Box::new(|cc| {
+                egui_extras::install_image_loaders(&cc.egui_ctx);
+                Ok(Box::new(self))
+            }),
+        )
+    }
+}
 
-        eframe::run_ui_native("Janus", options, move |ui, _frame| {
-            egui_extras::install_image_loaders(ui.ctx());
+impl eframe::App for Renderer {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let control_pane_width = 200.0;
 
-            egui::Panel::left("my_left_panel")
-                .exact_size(control_pane_width)
-                .show_inside(ui, |ui| {
-                    ui.label(
-                        egui::RichText::new("NORAD SPACETRACK REPORT No.3 SGP4 Sample test case")
-                            .underline(),
+        egui::Panel::left("my_left_panel")
+            .exact_size(control_pane_width)
+            .show_inside(ui, |ui| {
+                ui.label(
+                    egui::RichText::new("NORAD SPACETRACK REPORT No.3 SGP4 Sample test case")
+                        .underline(),
+                );
+
+                ui.label("Eccentricity (EO)");
+                ui.add(egui::TextEdit::singleline(&mut self.eo_str));
+
+                ui.label("Mean Motion (XNO)");
+                ui.add(egui::TextEdit::singleline(&mut self.xno_str));
+
+                ui.label("Mean Anomaly (XMO)");
+                ui.add(egui::TextEdit::singleline(&mut self.xmo_str));
+
+                ui.label("Inclination (XINCL)");
+                ui.add(egui::TextEdit::singleline(&mut self.xincl_str));
+
+                ui.label("Right Ascension of the Ascending Node (XNODEO)");
+                ui.add(egui::TextEdit::singleline(&mut self.xnodeo_str));
+
+                ui.label("Argument of Perigee (OMEGAO)");
+                ui.add(egui::TextEdit::singleline(&mut self.omegao_str));
+
+                ui.label("B-Star Drag Term (BSTAR)");
+                ui.add(egui::TextEdit::singleline(&mut self.bstar_str));
+
+                if ui.add(egui::Button::new("Update")).clicked() {
+                    let parsed = (
+                        self.eo_str.parse::<f64>(),
+                        self.xno_str.parse::<f64>(),
+                        self.xmo_str.parse::<f64>(),
+                        self.xincl_str.parse::<f64>(),
+                        self.xnodeo_str.parse::<f64>(),
+                        self.omegao_str.parse::<f64>(),
+                        self.bstar_str.parse::<f64>(),
                     );
 
-                    ui.label("Eccentricity (EO)");
-                    let eo_input = ui.add(egui::TextEdit::singleline(&mut eo));
+                    if let (
+                        Ok(eo),
+                        Ok(xno),
+                        Ok(xmo),
+                        Ok(xincl),
+                        Ok(xnodeo),
+                        Ok(omegao),
+                        Ok(bstar),
+                    ) = parsed
+                    {
+                        self.eo = eo;
+                        self.xno = xno;
+                        self.xmo = xmo;
+                        self.xincl = xincl;
+                        self.xnodeo = xnodeo;
+                        self.omegao = omegao;
+                        self.bstar = bstar;
 
-                    ui.label("Mean Motion (XNO)");
-                    let xno_input = ui.add(egui::TextEdit::singleline(&mut xno));
-
-                    ui.label("Mean Anomaly (XMO)");
-                    let xno_input = ui.add(egui::TextEdit::singleline(&mut xmo));
-
-                    ui.label("Inclination (XINCL)");
-                    let xno_input = ui.add(egui::TextEdit::singleline(&mut xincl));
-
-                    ui.label("Right Ascension of the Ascending Node (XNODEO)");
-                    let xno_input = ui.add(egui::TextEdit::singleline(&mut xnodeo));
-
-                    ui.label("Argument of Perigee (OMEGAO)");
-                    let xno_input = ui.add(egui::TextEdit::singleline(&mut omegao));
-
-                    ui.label("B-Star Drag Term (BSTAR)");
-                    let xno_input = ui.add(egui::TextEdit::singleline(&mut bstar));
-                });
-
-            egui::CentralPanel::default().show_inside(ui, |ui| {
-                let panel_rect = ui.available_rect_before_wrap();
-
-                egui::Image::new(egui::include_image!(".././images/map.png"))
-                    .paint_at(ui, panel_rect);
-
-                let orbit = PlotPoints::new(points.clone());
-                let line = Line::new("orbit", orbit).width(3.0).color(Color32::ORANGE);
-
-                Plot::new("my_plot")
-                    .show_background(false)
-                    .allow_drag(false)
-                    .allow_zoom(false)
-                    .allow_scroll(false)
-                    .grid_color(Color32::WHITE)
-                    .show_axes(false)
-                    .show(ui, |plot_ui| plot_ui.line(line));
+                        self.points =
+                            (self.compute_points)(eo, bstar, xincl, omegao, xmo, xno, xnodeo);
+                    }
+                }
             });
-        })
+
+        egui::CentralPanel::default().show_inside(ui, |ui| {
+            let panel_rect = ui.available_rect_before_wrap();
+
+            egui::Image::new(egui::include_image!(".././images/map.png")).paint_at(ui, panel_rect);
+
+            let orbit = PlotPoints::new(self.points.clone());
+            let line = Line::new("orbit", orbit).width(3.0).color(Color32::ORANGE);
+
+            Plot::new("my_plot")
+                .show_background(false)
+                .allow_drag(false)
+                .allow_zoom(false)
+                .allow_scroll(false)
+                .grid_color(Color32::WHITE)
+                .show_axes(false)
+                .show(ui, |plot_ui| plot_ui.line(line));
+        });
     }
 }

@@ -29,15 +29,15 @@ fn calculate_points(sgp4: &sgp4::Sgp4, gt: &ground_track::GroundTrack) -> Vec<[f
     points
 }
 
-fn main() -> eframe::Result {
-    let eo = test_constants::EO;
-    let xno = test_constants::XNO;
-    let xmo = test_constants::XMO;
-    let xincl = test_constants::XINCL;
-    let xnodeo = test_constants::XNODEO;
-    let omegao = test_constants::OMEGAO;
-    let bstar = test_constants::BSTAR;
-
+fn compute_points(
+    eo: f64,
+    bstar: f64,
+    xincl: f64,
+    omegao: f64,
+    xmo: f64,
+    xno: f64,
+    xnodeo: f64,
+) -> Vec<[f64; 2]> {
     let sgp4 = sgp4::Sgp4::new(
         eo,
         bstar,
@@ -51,17 +51,11 @@ fn main() -> eframe::Result {
 
     let test_epoch = -7030.01291535; // Spacetrack Report No. 3 base epoch
     let gt = ground_track::GroundTrack::new(test_epoch);
-    let points = calculate_points(&sgp4, &gt);
+    calculate_points(&sgp4, &gt)
+}
 
-    let mut renderer = renderer::Renderer {
-        eo,
-        bstar,
-        xincl,
-        omegao,
-        xmo,
-        xno,
-        xnodeo,
-    };
+fn main() -> eframe::Result {
+    let renderer = renderer::Renderer::new(compute_points);
 
-    renderer.render(points)
+    renderer.run()
 }
