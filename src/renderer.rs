@@ -159,7 +159,7 @@ impl eframe::App for Renderer {
             egui::Image::new(egui::include_image!(".././images/map.png")).paint_at(ui, panel_rect);
 
             let orbit = PlotPoints::new(self.points.clone());
-            let line = Line::new("orbit", orbit).width(3.0).color(Color32::ORANGE);
+            let line = Line::new("orbit", orbit).width(4.0).color(Color32::ORANGE);
 
             Plot::new("my_plot")
                 .show_background(false)
