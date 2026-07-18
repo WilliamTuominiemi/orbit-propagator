@@ -14,6 +14,7 @@ pub struct Renderer {
     pub xnodeo: f64,
     pub omegao: f64,
     pub bstar: f64,
+    pub t_until: i32,
     eo_str: String,
     xno_str: String,
     xmo_str: String,
@@ -21,12 +22,15 @@ pub struct Renderer {
     xnodeo_str: String,
     omegao_str: String,
     bstar_str: String,
+    t_until_str: String,
     points: Vec<[f64; 2]>,
-    pub compute_points: fn(f64, f64, f64, f64, f64, f64, f64) -> Vec<[f64; 2]>,
+    pub compute_points: fn(f64, f64, f64, f64, f64, f64, f64, i32) -> Vec<[f64; 2]>,
 }
 
 impl Renderer {
-    pub fn new(compute_points: fn(f64, f64, f64, f64, f64, f64, f64) -> Vec<[f64; 2]>) -> Self {
+    pub fn new(
+        compute_points: fn(f64, f64, f64, f64, f64, f64, f64, i32) -> Vec<[f64; 2]>,
+    ) -> Self {
         let eo = test_constants::EO;
         let xno = test_constants::XNO;
         let xmo = test_constants::XMO;
@@ -34,8 +38,9 @@ impl Renderer {
         let xnodeo = test_constants::XNODEO;
         let omegao = test_constants::OMEGAO;
         let bstar = test_constants::BSTAR;
+        let t_until = 9000;
 
-        let points = compute_points(eo, bstar, xincl, omegao, xmo, xno, xnodeo);
+        let points = compute_points(eo, bstar, xincl, omegao, xmo, xno, xnodeo, t_until);
 
         Self {
             eo_str: eo.to_string(),
@@ -45,6 +50,7 @@ impl Renderer {
             xnodeo_str: xnodeo.to_string(),
             omegao_str: omegao.to_string(),
             bstar_str: bstar.to_string(),
+            t_until_str: t_until.to_string(),
             eo,
             xno,
             xmo,
@@ -52,6 +58,7 @@ impl Renderer {
             xnodeo,
             omegao,
             bstar,
+            t_until,
             points,
             compute_points,
         }
@@ -83,11 +90,6 @@ impl eframe::App for Renderer {
         egui::Panel::left("my_left_panel")
             .exact_size(control_pane_width)
             .show_inside(ui, |ui| {
-                ui.label(
-                    egui::RichText::new("NORAD SPACETRACK REPORT No.3 SGP4 Sample test case")
-                        .underline(),
-                );
-
                 ui.label("Eccentricity (EO)");
                 ui.add(egui::TextEdit::singleline(&mut self.eo_str));
 
@@ -109,6 +111,9 @@ impl eframe::App for Renderer {
                 ui.label("B-Star Drag Term (BSTAR)");
                 ui.add(egui::TextEdit::singleline(&mut self.bstar_str));
 
+                ui.label("Tracking time");
+                ui.add(egui::TextEdit::singleline(&mut self.t_until_str));
+
                 if ui.add(egui::Button::new("Update")).clicked() {
                     let parsed = (
                         self.eo_str.parse::<f64>(),
@@ -118,6 +123,7 @@ impl eframe::App for Renderer {
                         self.xnodeo_str.parse::<f64>(),
                         self.omegao_str.parse::<f64>(),
                         self.bstar_str.parse::<f64>(),
+                        self.t_until_str.parse::<i32>(),
                     );
 
                     if let (
@@ -128,6 +134,7 @@ impl eframe::App for Renderer {
                         Ok(xnodeo),
                         Ok(omegao),
                         Ok(bstar),
+                        Ok(t_until),
                     ) = parsed
                     {
                         self.eo = eo;
@@ -137,9 +144,11 @@ impl eframe::App for Renderer {
                         self.xnodeo = xnodeo;
                         self.omegao = omegao;
                         self.bstar = bstar;
+                        self.t_until = t_until;
 
-                        self.points =
-                            (self.compute_points)(eo, bstar, xincl, omegao, xmo, xno, xnodeo);
+                        self.points = (self.compute_points)(
+                            eo, bstar, xincl, omegao, xmo, xno, xnodeo, t_until,
+                        );
                     }
                 }
             });
