@@ -1,14 +1,25 @@
-# SGP4 Orbit Propogator
+# Orbit Propagator
 
 Implementation of the SGP4 from the [NORAD SPACETRACK REPORT NO. 3](https://archive.aoe.vt.edu/cliff/aoe4134/spacetrk.pdf). Turns input data from satellite into a graph representation of where over the earth it is located.
 
 ![demo](images/demo.png)
 
-# Sample test case
+## SGP4
+
+Calculate where an Earth-orbiting satellite is and where it will be. Takes into account Earth's non-perfect shape & how it affects gravity, atmospheric drag and lunar & solar gravity.
+
+## Ground track conversion
+
+The X, Y and Z are in ECI format, which can't be displayed on a 2D graph. Also takes into account how the globe is converted into a imperfect 2D map.
+
+They are converted ECI [-> ECEF](https://space.stackexchange.com/questions/38807/transform-eci-to-ecef) [-> Geodetic](https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#The_application_of_Ferrari's_solution)
+
+
+## Sample test case
 
 Test case from SPACETRACK REPORT NO. 3 with inputs and outputs, used to validate SGP4 part of implementation.
 
-## Input values
+### Input values
 
 These are just the ones actually used in the algorithm.
 
@@ -22,7 +33,7 @@ These are just the ones actually used in the algorithm.
 | XNO           | 16.05824518   | Mean motion                       | 
 | XNODEO        | 115.9689°     | Right ascension of ascending node |
 
-## Output values
+### Output values
 
 When TSINCE: 0, so the first dot on the graph.
 
@@ -34,9 +45,3 @@ When TSINCE: 0, so the first dot on the graph.
 | XDOT      | 2.91207230    |
 | YDOT      | -0.98341546   |
 | ZDOT      | -7.09081703   |
-
-## Ground track conversion
-
-The X, Y and Z are in ECI format, which can't be displayed on a 2D graph. 
-
-They are converted ECI [-> ECEF](https://space.stackexchange.com/questions/38807/transform-eci-to-ecef) [-> Geodetic](https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#The_application_of_Ferrari's_solution)
