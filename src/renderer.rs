@@ -65,7 +65,7 @@ impl Renderer {
     }
 
     pub fn run(self) -> eframe::Result {
-        let window_size = egui::vec2(1400.0, 600.0);
+        let window_size = egui::vec2(1400.0, 650.0);
 
         let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default().with_inner_size(window_size),
@@ -87,7 +87,7 @@ impl eframe::App for Renderer {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let control_pane_width = 200.0;
 
-        egui::Panel::left("my_left_panel")
+        egui::Panel::left("control_pane")
             .exact_size(control_pane_width)
             .show_inside(ui, |ui| {
                 ui.label("Eccentricity (EO)");
@@ -154,7 +154,8 @@ impl eframe::App for Renderer {
             });
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
-            let panel_rect = ui.available_rect_before_wrap();
+            let mut panel_rect = ui.available_rect_before_wrap();
+            panel_rect.set_height(panel_rect.width() / 2.0);
 
             egui::Image::new(egui::include_image!(".././images/map.png")).paint_at(ui, panel_rect);
 
@@ -168,7 +169,15 @@ impl eframe::App for Renderer {
                 .allow_scroll(false)
                 .grid_color(Color32::WHITE)
                 .show_axes(false)
+                .width(panel_rect.width())
+                .height(panel_rect.height())
                 .show(ui, |plot_ui| plot_ui.line(line));
+
+            egui::Panel::bottom("time_slider_pane").show_inside(ui, |ui| {
+                ui.style_mut().spacing.slider_width = panel_rect.width() - 100.0;
+                ui.label("Time since start (TSINCE):");
+                ui.add(egui::Slider::new(&mut 9000.0, 0.0..=30000.0));
+            });
         });
     }
 }
