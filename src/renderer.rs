@@ -39,9 +39,10 @@ impl Renderer {
         let xnodeo = test_constants::XNODEO;
         let omegao = test_constants::OMEGAO;
         let bstar = test_constants::BSTAR;
-        let t_until = 9000;
+        let t_until = 27000;
+        let t_since = t_until / 3;
 
-        let points = compute_points(eo, bstar, xincl, omegao, xmo, xno, xnodeo, t_until);
+        let points = compute_points(eo, bstar, xincl, omegao, xmo, xno, xnodeo, t_since);
 
         Self {
             eo_str: eo.to_string(),
@@ -62,7 +63,7 @@ impl Renderer {
             t_until,
             points,
             compute_points,
-            t_since: t_until / 3,
+            t_since,
         }
     }
 
@@ -116,50 +117,61 @@ impl eframe::App for Renderer {
                 ui.label("Tracking time");
                 ui.add(egui::TextEdit::singleline(&mut self.t_until_str));
 
-                if ui.add(egui::Button::new("Update")).clicked() {
-                    let parsed = (
-                        self.eo_str.parse::<f64>(),
-                        self.xno_str.parse::<f64>(),
-                        self.xmo_str.parse::<f64>(),
-                        self.xincl_str.parse::<f64>(),
-                        self.xnodeo_str.parse::<f64>(),
-                        self.omegao_str.parse::<f64>(),
-                        self.bstar_str.parse::<f64>(),
-                        self.t_until_str.parse::<i32>(),
-                    );
+                egui::Panel::bottom("update_graph")
+                    .show_separator_line(false)
+                    .frame(egui::Frame::default().outer_margin(12.6))
+                    .show_inside(ui, |ui| {
+                        if ui
+                            .add(
+                                egui::Button::new("Update graph")
+                                    .stroke(egui::Stroke::new(2.0, egui::Color32::ORANGE)),
+                            )
+                            .clicked()
+                        {
+                            let parsed = (
+                                self.eo_str.parse::<f64>(),
+                                self.xno_str.parse::<f64>(),
+                                self.xmo_str.parse::<f64>(),
+                                self.xincl_str.parse::<f64>(),
+                                self.xnodeo_str.parse::<f64>(),
+                                self.omegao_str.parse::<f64>(),
+                                self.bstar_str.parse::<f64>(),
+                                self.t_until_str.parse::<i32>(),
+                            );
 
-                    if let (
-                        Ok(eo),
-                        Ok(xno),
-                        Ok(xmo),
-                        Ok(xincl),
-                        Ok(xnodeo),
-                        Ok(omegao),
-                        Ok(bstar),
-                        Ok(t_until),
-                    ) = parsed
-                    {
-                        self.eo = eo;
-                        self.xno = xno;
-                        self.xmo = xmo;
-                        self.xincl = xincl;
-                        self.xnodeo = xnodeo;
-                        self.omegao = omegao;
-                        self.bstar = bstar;
-                        self.t_until = t_until;
+                            if let (
+                                Ok(eo),
+                                Ok(xno),
+                                Ok(xmo),
+                                Ok(xincl),
+                                Ok(xnodeo),
+                                Ok(omegao),
+                                Ok(bstar),
+                                Ok(t_until),
+                            ) = parsed
+                            {
+                                self.eo = eo;
+                                self.xno = xno;
+                                self.xmo = xmo;
+                                self.xincl = xincl;
+                                self.xnodeo = xnodeo;
+                                self.omegao = omegao;
+                                self.bstar = bstar;
+                                self.t_until = t_until;
 
-                        self.points = (self.compute_points)(
-                            eo,
-                            bstar,
-                            xincl,
-                            omegao,
-                            xmo,
-                            xno,
-                            xnodeo,
-                            self.t_since,
-                        );
-                    }
-                }
+                                self.points = (self.compute_points)(
+                                    eo,
+                                    bstar,
+                                    xincl,
+                                    omegao,
+                                    xmo,
+                                    xno,
+                                    xnodeo,
+                                    self.t_since,
+                                );
+                            }
+                        }
+                    });
             });
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
@@ -171,7 +183,7 @@ impl eframe::App for Renderer {
             let orbit = PlotPoints::new(self.points.clone());
             let line = Line::new("orbit", orbit).width(4.0).color(Color32::ORANGE);
 
-            Plot::new("my_plot")
+            Plot::new("orbit_plot")
                 .show_background(false)
                 .allow_drag(false)
                 .allow_zoom(false)
