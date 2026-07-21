@@ -25,6 +25,7 @@ pub struct Renderer {
     t_until_str: String,
     points: Vec<[f64; 2]>,
     pub compute_points: fn(f64, f64, f64, f64, f64, f64, f64, i32) -> Vec<[f64; 2]>,
+    t_since: i32,
 }
 
 impl Renderer {
@@ -61,6 +62,7 @@ impl Renderer {
             t_until,
             points,
             compute_points,
+            t_since: t_until / 3,
         }
     }
 
@@ -147,7 +149,14 @@ impl eframe::App for Renderer {
                         self.t_until = t_until;
 
                         self.points = (self.compute_points)(
-                            eo, bstar, xincl, omegao, xmo, xno, xnodeo, t_until,
+                            eo,
+                            bstar,
+                            xincl,
+                            omegao,
+                            xmo,
+                            xno,
+                            xnodeo,
+                            self.t_since,
                         );
                     }
                 }
@@ -176,7 +185,7 @@ impl eframe::App for Renderer {
             egui::Panel::bottom("time_slider_pane").show_inside(ui, |ui| {
                 ui.style_mut().spacing.slider_width = panel_rect.width() - 100.0;
                 ui.label("Time since start (TSINCE):");
-                ui.add(egui::Slider::new(&mut 9000.0, 0.0..=30000.0));
+                ui.add(egui::Slider::new(&mut self.t_since, 0..=self.t_until));
             });
         });
     }
