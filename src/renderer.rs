@@ -1,8 +1,7 @@
 use eframe::egui;
 use eframe::egui::Color32;
 use egui_plot::Line;
-use egui_plot::Plot;
-use egui_plot::PlotPoints;
+use egui_plot::{Plot, PlotPoints, Points};
 
 use crate::test_constants;
 
@@ -183,6 +182,12 @@ impl eframe::App for Renderer {
             let orbit = PlotPoints::new(self.points.clone());
             let line = Line::new("orbit", orbit).width(4.0).color(Color32::ORANGE);
 
+            let current_position = self.points.last().copied().unwrap_or([0.0, 0.0]);
+            let points = Points::new("current_position", PlotPoints::new(vec![current_position]))
+                .radius(12.0)
+                .shape(egui_plot::MarkerShape::Diamond)
+                .color(egui::Color32::LIGHT_RED);
+
             Plot::new("orbit_plot")
                 .show_background(false)
                 .allow_drag(false)
@@ -192,7 +197,11 @@ impl eframe::App for Renderer {
                 .show_axes(false)
                 .width(panel_rect.width())
                 .height(panel_rect.height())
-                .show(ui, |plot_ui| plot_ui.line(line));
+                .show(ui, |plot_ui| {
+                    plot_ui.line(line);
+
+                    plot_ui.points(points);
+                });
 
             egui::Panel::bottom("time_slider_pane").show_inside(ui, |ui| {
                 ui.style_mut().spacing.slider_width = panel_rect.width() - 100.0;
