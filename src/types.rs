@@ -117,3 +117,8 @@ pub struct GeodeticPosition {
     pub lon: f64,
     pub alt: f64,
 }
+
+pub struct GraphData {
+    pub points: Vec<[f64; 2]>,
+    pub altitude: f64,
+}

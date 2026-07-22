@@ -1,9 +1,11 @@
 use eframe::egui;
 use eframe::egui::Color32;
+use egui::Vec2;
 use egui_plot::Line;
 use egui_plot::{Plot, PlotPoints, Points};
 
 use crate::test_constants;
+use crate::types;
 
 pub struct Renderer {
     pub eo: f64,
@@ -23,13 +25,14 @@ pub struct Renderer {
     bstar_str: String,
     t_until_str: String,
     points: Vec<[f64; 2]>,
-    pub compute_points: fn(f64, f64, f64, f64, f64, f64, f64, i32) -> Vec<[f64; 2]>,
+    pub compute_points: fn(f64, f64, f64, f64, f64, f64, f64, i32) -> types::GraphData,
     t_since: i32,
+    altitude: f64,
 }
 
 impl Renderer {
     pub fn new(
-        compute_points: fn(f64, f64, f64, f64, f64, f64, f64, i32) -> Vec<[f64; 2]>,
+        compute_points: fn(f64, f64, f64, f64, f64, f64, f64, i32) -> types::GraphData,
     ) -> Self {
         let eo = test_constants::EO;
         let xno = test_constants::XNO;
@@ -41,7 +44,9 @@ impl Renderer {
         let t_until = 27000;
         let t_since = t_until / 3;
 
-        let points = compute_points(eo, bstar, xincl, omegao, xmo, xno, xnodeo, t_until);
+        let gd = compute_points(eo, bstar, xincl, omegao, xmo, xno, xnodeo, t_until);
+        let points = gd.points;
+        let altitude = gd.altitude;
 
         Self {
             eo_str: eo.to_string(),
@@ -63,6 +68,7 @@ impl Renderer {
             points,
             compute_points,
             t_since,
+            altitude,
         }
     }
 
@@ -92,84 +98,100 @@ impl eframe::App for Renderer {
         egui::Panel::left("control_pane")
             .exact_size(control_pane_width)
             .show_inside(ui, |ui| {
-                ui.label("Eccentricity (EO)");
-                ui.add(egui::TextEdit::singleline(&mut self.eo_str));
+                egui::Frame::new()
+                    .inner_margin(egui::Margin::same(5))
+                    .show(ui, |ui| {
+                        ui.label("Eccentricity (EO)");
+                        ui.add(egui::TextEdit::singleline(&mut self.eo_str));
 
-                ui.label("Mean Motion (XNO)");
-                ui.add(egui::TextEdit::singleline(&mut self.xno_str));
+                        ui.label("Mean Motion (XNO)");
+                        ui.add(egui::TextEdit::singleline(&mut self.xno_str));
 
-                ui.label("Mean Anomaly (XMO)");
-                ui.add(egui::TextEdit::singleline(&mut self.xmo_str));
+                        ui.label("Mean Anomaly (XMO)");
+                        ui.add(egui::TextEdit::singleline(&mut self.xmo_str));
 
-                ui.label("Inclination (XINCL)");
-                ui.add(egui::TextEdit::singleline(&mut self.xincl_str));
+                        ui.label("Inclination (XINCL)");
+                        ui.add(egui::TextEdit::singleline(&mut self.xincl_str));
 
-                ui.label("Right Ascension of the Ascending Node (XNODEO)");
-                ui.add(egui::TextEdit::singleline(&mut self.xnodeo_str));
+                        ui.label("Right Ascension of the Ascending Node (XNODEO)");
+                        ui.add(egui::TextEdit::singleline(&mut self.xnodeo_str));
 
-                ui.label("Argument of Perigee (OMEGAO)");
-                ui.add(egui::TextEdit::singleline(&mut self.omegao_str));
+                        ui.label("Argument of Perigee (OMEGAO)");
+                        ui.add(egui::TextEdit::singleline(&mut self.omegao_str));
 
-                ui.label("B-Star Drag Term (BSTAR)");
-                ui.add(egui::TextEdit::singleline(&mut self.bstar_str));
+                        ui.label("B-Star Drag Term (BSTAR)");
+                        ui.add(egui::TextEdit::singleline(&mut self.bstar_str));
 
-                ui.label("Tracking time");
-                ui.add(egui::TextEdit::singleline(&mut self.t_until_str));
+                        ui.label("Tracking time");
+                        ui.add(egui::TextEdit::singleline(&mut self.t_until_str));
+                    });
 
-                egui::Panel::bottom("update_graph")
-                    .show_separator_line(false)
+                egui::Frame::new()
+                    .inner_margin(egui::Margin::same(5)) // adjust margin amount as needed
+                    .show(ui, |ui| {
+                        ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                            if ui
+                                .add(
+                                    egui::Button::new("Update graph")
+                                        .min_size(Vec2::new(
+                                            control_pane_width * 0.9,
+                                            control_pane_width * 0.9 / 5.0,
+                                        ))
+                                        .stroke(egui::Stroke::new(2.0, egui::Color32::ORANGE)),
+                                )
+                                .clicked()
+                            {
+                                let parsed = (
+                                    self.eo_str.parse::<f64>(),
+                                    self.xno_str.parse::<f64>(),
+                                    self.xmo_str.parse::<f64>(),
+                                    self.xincl_str.parse::<f64>(),
+                                    self.xnodeo_str.parse::<f64>(),
+                                    self.omegao_str.parse::<f64>(),
+                                    self.bstar_str.parse::<f64>(),
+                                    self.t_until_str.parse::<i32>(),
+                                );
+
+                                if let (
+                                    Ok(eo),
+                                    Ok(xno),
+                                    Ok(xmo),
+                                    Ok(xincl),
+                                    Ok(xnodeo),
+                                    Ok(omegao),
+                                    Ok(bstar),
+                                    Ok(t_until),
+                                ) = parsed
+                                {
+                                    self.eo = eo;
+                                    self.xno = xno;
+                                    self.xmo = xmo;
+                                    self.xincl = xincl;
+                                    self.xnodeo = xnodeo;
+                                    self.omegao = omegao;
+                                    self.bstar = bstar;
+                                    self.t_until = t_until;
+
+                                    let gd = (self.compute_points)(
+                                        eo,
+                                        bstar,
+                                        xincl,
+                                        omegao,
+                                        xmo,
+                                        xno,
+                                        xnodeo,
+                                        self.t_until,
+                                    );
+                                    self.points = gd.points;
+                                }
+                            }
+                        });
+                    });
+
+                egui::Panel::bottom("metrics")
                     .frame(egui::Frame::default().outer_margin(12.6))
                     .show_inside(ui, |ui| {
-                        if ui
-                            .add(
-                                egui::Button::new("Update graph")
-                                    .stroke(egui::Stroke::new(2.0, egui::Color32::ORANGE)),
-                            )
-                            .clicked()
-                        {
-                            let parsed = (
-                                self.eo_str.parse::<f64>(),
-                                self.xno_str.parse::<f64>(),
-                                self.xmo_str.parse::<f64>(),
-                                self.xincl_str.parse::<f64>(),
-                                self.xnodeo_str.parse::<f64>(),
-                                self.omegao_str.parse::<f64>(),
-                                self.bstar_str.parse::<f64>(),
-                                self.t_until_str.parse::<i32>(),
-                            );
-
-                            if let (
-                                Ok(eo),
-                                Ok(xno),
-                                Ok(xmo),
-                                Ok(xincl),
-                                Ok(xnodeo),
-                                Ok(omegao),
-                                Ok(bstar),
-                                Ok(t_until),
-                            ) = parsed
-                            {
-                                self.eo = eo;
-                                self.xno = xno;
-                                self.xmo = xmo;
-                                self.xincl = xincl;
-                                self.xnodeo = xnodeo;
-                                self.omegao = omegao;
-                                self.bstar = bstar;
-                                self.t_until = t_until;
-
-                                self.points = (self.compute_points)(
-                                    eo,
-                                    bstar,
-                                    xincl,
-                                    omegao,
-                                    xmo,
-                                    xno,
-                                    xnodeo,
-                                    self.t_until,
-                                );
-                            }
-                        }
+                        ui.label(format!("Altitude: {} km", self.altitude / 1000.0));
                     });
             });
 

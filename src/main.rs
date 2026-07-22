@@ -10,9 +10,10 @@ fn calculate_points(
     sgp4: &sgp4::Sgp4,
     gt: &ground_track::GroundTrack,
     t_until: i32,
-) -> Vec<[f64; 2]> {
+) -> types::GraphData {
     let mut points = Vec::new();
     let mut last_lon = 0.0;
+    let mut altitude = 0.0;
 
     for i in 0..t_until {
         let tsince = i as f64 * 0.01;
@@ -36,9 +37,13 @@ fn calculate_points(
 
         points.push([lon, lat]);
         last_lon = lon;
+
+        if i == 0 {
+            altitude = geodetic.alt;
+        }
     }
 
-    points
+    types::GraphData { points, altitude }
 }
 
 fn compute_points(
@@ -50,7 +55,7 @@ fn compute_points(
     xno: f64,
     xnodeo: f64,
     t_until: i32,
-) -> Vec<[f64; 2]> {
+) -> types::GraphData {
     let sgp4 = sgp4::Sgp4::new(
         eo,
         bstar,
