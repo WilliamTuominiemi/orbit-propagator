@@ -45,10 +45,15 @@ impl GroundTrack {
             iterations += 1;
         }
 
+        let (vel_east, vel_north, vel_up) = self.ecef_velocity_to_enu(&ecef, theta, clambda);
+
         types::GeodeticPosition {
             lat: theta,
             lon: clambda,
             alt: h,
+            vel_east,
+            vel_north,
+            vel_up,
         }
     }
 
@@ -62,7 +67,28 @@ impl GroundTrack {
         let z =
             rotation_matrix.m6 * pav.x + rotation_matrix.m7 * pav.y + rotation_matrix.m8 * pav.z;
 
-        types::EcefPosition { x, y, z }
+        let vx_rot = rotation_matrix.m0 * pav.xdot
+            + rotation_matrix.m1 * pav.ydot
+            + rotation_matrix.m2 * pav.zdot;
+        let vy_rot = rotation_matrix.m3 * pav.xdot
+            + rotation_matrix.m4 * pav.ydot
+            + rotation_matrix.m5 * pav.zdot;
+        let vz_rot = rotation_matrix.m6 * pav.xdot
+            + rotation_matrix.m7 * pav.ydot
+            + rotation_matrix.m8 * pav.zdot;
+
+        let xdot = vx_rot + constants::EARTH_ROTATION_RATE * y;
+        let ydot = vy_rot - constants::EARTH_ROTATION_RATE * x;
+        let zdot = vz_rot;
+
+        types::EcefPosition {
+            x,
+            y,
+            z,
+            xdot,
+            ydot,
+            zdot,
+        }
     }
 
     fn calculate_rotation_matrix(&self, ut1: f64) -> types::RotationMatrix {
@@ -191,6 +217,26 @@ impl GroundTrack {
 
     fn tsince_to_ut1(&self, tsince: f64) -> f64 {
         self.base_ut1 + (tsince / 1440.0)
+    }
+
+    fn ecef_velocity_to_enu(
+        &self,
+        ecef: &types::EcefPosition,
+        lat: f64,
+        lon: f64,
+    ) -> (f64, f64, f64) {
+        let sin_lat = lat.sin();
+        let cos_lat = lat.cos();
+        let sin_lon = lon.sin();
+        let cos_lon = lon.cos();
+
+        let east = -sin_lon * ecef.xdot + cos_lon * ecef.ydot;
+        let north =
+            -sin_lat * cos_lon * ecef.xdot - sin_lat * sin_lon * ecef.ydot + cos_lat * ecef.zdot;
+        let up =
+            cos_lat * cos_lon * ecef.xdot + cos_lat * sin_lon * ecef.ydot + sin_lat * ecef.zdot;
+
+        (east, north, up)
     }
 }
 

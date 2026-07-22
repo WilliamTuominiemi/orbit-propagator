@@ -28,6 +28,7 @@ pub struct Renderer {
     pub compute_points: fn(f64, f64, f64, f64, f64, f64, f64, i32) -> types::GraphData,
     t_since: i32,
     altitude: f64,
+    velocity: f64,
 }
 
 impl Renderer {
@@ -45,8 +46,6 @@ impl Renderer {
         let t_since = t_until / 3;
 
         let gd = compute_points(eo, bstar, xincl, omegao, xmo, xno, xnodeo, t_until);
-        let points = gd.points;
-        let altitude = gd.altitude;
 
         Self {
             eo_str: eo.to_string(),
@@ -65,10 +64,11 @@ impl Renderer {
             omegao,
             bstar,
             t_until,
-            points,
+            points: gd.points,
             compute_points,
             t_since,
-            altitude,
+            altitude: gd.altitude,
+            velocity: gd.velocity,
         }
     }
 
@@ -192,6 +192,7 @@ impl eframe::App for Renderer {
                     .frame(egui::Frame::default().outer_margin(12.6))
                     .show_inside(ui, |ui| {
                         ui.label(format!("Altitude: {} km", self.altitude / 1000.0));
+                        ui.label(format!("Velocity: {} km/s", self.velocity / 1000.0));
                     });
             });
 
@@ -239,7 +240,7 @@ impl eframe::App for Renderer {
 
             egui::Panel::bottom("time_slider_pane").show_inside(ui, |ui| {
                 ui.style_mut().spacing.slider_width = panel_rect.width() - 100.0;
-                ui.label("Time since start (TSINCE):");
+                ui.label("Minutes since start:");
                 ui.add(egui::Slider::new(&mut self.t_since, 0..=self.t_until));
             });
         });

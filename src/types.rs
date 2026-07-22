@@ -109,6 +109,9 @@ pub struct EcefPosition {
     pub x: f64,
     pub y: f64,
     pub z: f64,
+    pub xdot: f64,
+    pub ydot: f64,
+    pub zdot: f64,
 }
 
 #[derive(Debug)]
@@ -116,9 +119,13 @@ pub struct GeodeticPosition {
     pub lat: f64,
     pub lon: f64,
     pub alt: f64,
+    pub vel_east: f64,
+    pub vel_north: f64,
+    pub vel_up: f64,
 }
 
 pub struct GraphData {
     pub points: Vec<[f64; 2]>,
     pub altitude: f64,
+    pub velocity: f64,
 }

@@ -14,6 +14,7 @@ fn calculate_points(
     let mut points = Vec::new();
     let mut last_lon = 0.0;
     let mut altitude = 0.0;
+    let mut velocity = 0.0;
 
     for i in 0..t_until {
         let tsince = i as f64 * 0.01;
@@ -40,10 +41,17 @@ fn calculate_points(
 
         if i == 0 {
             altitude = geodetic.alt;
+            velocity =
+                (geodetic.vel_east.powi(2) + geodetic.vel_north.powi(2) + geodetic.vel_up.powi(2))
+                    .sqrt();
         }
     }
 
-    types::GraphData { points, altitude }
+    types::GraphData {
+        points,
+        altitude,
+        velocity,
+    }
 }
 
 fn compute_points(
