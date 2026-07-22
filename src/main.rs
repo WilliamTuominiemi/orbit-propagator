@@ -17,7 +17,15 @@ fn calculate_points(
     for i in 0..t_until {
         let tsince = i as f64 * 0.01;
         let pav = sgp4.propagate(tsince);
-        let geodetic = gt.eci_to_geodetic(tsince, pav);
+        let pav_m = types::PositionAndVelocity {
+            x: pav.x * 1000.0,
+            y: pav.y * 1000.0,
+            z: pav.z * 1000.0,
+            xdot: pav.xdot * 1000.0,
+            ydot: pav.ydot * 1000.0,
+            zdot: pav.zdot * 1000.0,
+        };
+        let geodetic = gt.eci_to_geodetic(tsince, pav_m);
 
         let lon = geodetic.lon.to_degrees();
         let lat = geodetic.lat.to_degrees();
