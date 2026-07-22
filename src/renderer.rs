@@ -166,7 +166,7 @@ impl eframe::App for Renderer {
                                     xmo,
                                     xno,
                                     xnodeo,
-                                    self.t_since,
+                                    self.t_until,
                                 );
                             }
                         }
