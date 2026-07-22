@@ -9,12 +9,12 @@ mod types;
 fn calculate_points(
     sgp4: &sgp4::Sgp4,
     gt: &ground_track::GroundTrack,
-    t_since: i32,
+    t_until: i32,
 ) -> Vec<[f64; 2]> {
     let mut points = Vec::new();
     let mut last_lon = 0.0;
 
-    for i in 0..t_since {
+    for i in 0..t_until {
         let tsince = i as f64 * 0.01;
         let pav = sgp4.propagate(tsince);
         let geodetic = gt.eci_to_geodetic(tsince, pav);
@@ -41,7 +41,7 @@ fn compute_points(
     xmo: f64,
     xno: f64,
     xnodeo: f64,
-    t_since: i32,
+    t_until: i32,
 ) -> Vec<[f64; 2]> {
     let sgp4 = sgp4::Sgp4::new(
         eo,
@@ -56,7 +56,7 @@ fn compute_points(
 
     let test_epoch = -7030.01291535; // Spacetrack Report No. 3 base epoch
     let gt = ground_track::GroundTrack::new(test_epoch);
-    calculate_points(&sgp4, &gt, t_since)
+    calculate_points(&sgp4, &gt, t_until)
 }
 
 fn main() -> eframe::Result {

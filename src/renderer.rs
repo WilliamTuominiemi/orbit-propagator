@@ -41,7 +41,7 @@ impl Renderer {
         let t_until = 27000;
         let t_since = t_until / 3;
 
-        let points = compute_points(eo, bstar, xincl, omegao, xmo, xno, xnodeo, t_since);
+        let points = compute_points(eo, bstar, xincl, omegao, xmo, xno, xnodeo, t_until);
 
         Self {
             eo_str: eo.to_string(),
@@ -179,10 +179,22 @@ impl eframe::App for Renderer {
 
             egui::Image::new(egui::include_image!(".././images/map.png")).paint_at(ui, panel_rect);
 
-            let orbit = PlotPoints::new(self.points.clone());
+            let orbit = PlotPoints::new(
+                self.points
+                    .iter()
+                    .take(self.t_since as usize)
+                    .copied()
+                    .collect::<Vec<_>>(),
+            );
             let line = Line::new("orbit", orbit).width(4.0).color(Color32::ORANGE);
 
-            let current_position = self.points.last().copied().unwrap_or([0.0, 0.0]);
+            let current_position = self
+                .points
+                .iter()
+                .take(self.t_since as usize)
+                .last()
+                .copied()
+                .unwrap_or([0.0, 0.0]);
             let points = Points::new("current_position", PlotPoints::new(vec![current_position]))
                 .radius(12.0)
                 .shape(egui_plot::MarkerShape::Diamond)
