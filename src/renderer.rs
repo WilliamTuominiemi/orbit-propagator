@@ -223,6 +223,9 @@ impl eframe::App for Renderer {
                 .shape(egui_plot::MarkerShape::Diamond)
                 .color(egui::Color32::LIGHT_RED);
 
+            let max_x = 180.0;
+            let max_y = 80.0;
+
             Plot::new("orbit_plot")
                 .show_background(false)
                 .allow_drag(false)
@@ -232,6 +235,10 @@ impl eframe::App for Renderer {
                 .show_axes(false)
                 .width(panel_rect.width())
                 .height(panel_rect.height())
+                .include_x(-max_x)
+                .include_x(max_x)
+                .include_y(-max_y)
+                .include_y(max_y)
                 .show(ui, |plot_ui| {
                     plot_ui.line(line);
 
