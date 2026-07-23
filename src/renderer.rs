@@ -191,8 +191,8 @@ impl eframe::App for Renderer {
                 egui::Panel::bottom("metrics")
                     .frame(egui::Frame::default().outer_margin(12.6))
                     .show_inside(ui, |ui| {
-                        ui.label(format!("Altitude: {} km", self.altitude / 1000.0));
-                        ui.label(format!("Velocity: {} km/s", self.velocity / 1000.0));
+                        ui.label(format!("Altitude: {:.3} km", self.altitude / 1000.0));
+                        ui.label(format!("Velocity: {:.3} km/s", self.velocity / 1000.0));
                     });
             });
 
