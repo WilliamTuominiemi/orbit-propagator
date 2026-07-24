@@ -24,16 +24,14 @@ pub struct Renderer {
     omegao_str: String,
     bstar_str: String,
     t_until_str: String,
-    points: Vec<[f64; 2]>,
-    pub compute_points: fn(f64, f64, f64, f64, f64, f64, f64, i32) -> types::GraphData,
+    data_points: Vec<types::GraphDataPoint>,
+    pub compute_points: fn(f64, f64, f64, f64, f64, f64, f64, i32) -> Vec<types::GraphDataPoint>,
     t_since: i32,
-    altitude: f64,
-    velocity: f64,
 }
 
 impl Renderer {
     pub fn new(
-        compute_points: fn(f64, f64, f64, f64, f64, f64, f64, i32) -> types::GraphData,
+        compute_points: fn(f64, f64, f64, f64, f64, f64, f64, i32) -> Vec<types::GraphDataPoint>,
     ) -> Self {
         let eo = test_constants::EO;
         let xno = test_constants::XNO;
@@ -45,7 +43,7 @@ impl Renderer {
         let t_until = 27000;
         let t_since = t_until / 3;
 
-        let gd = compute_points(eo, bstar, xincl, omegao, xmo, xno, xnodeo, t_until);
+        let data_points = compute_points(eo, bstar, xincl, omegao, xmo, xno, xnodeo, t_until);
 
         Self {
             eo_str: eo.to_string(),
@@ -64,11 +62,9 @@ impl Renderer {
             omegao,
             bstar,
             t_until,
-            points: gd.points,
+            data_points,
             compute_points,
             t_since,
-            altitude: gd.altitude,
-            velocity: gd.velocity,
         }
     }
 
@@ -172,7 +168,7 @@ impl eframe::App for Renderer {
                                     self.bstar = bstar;
                                     self.t_until = t_until;
 
-                                    let gd = (self.compute_points)(
+                                    self.data_points = (self.compute_points)(
                                         eo,
                                         bstar,
                                         xincl,
@@ -182,7 +178,6 @@ impl eframe::App for Renderer {
                                         xnodeo,
                                         self.t_until,
                                     );
-                                    self.points = gd.points;
                                 }
                             }
                         });
@@ -191,37 +186,61 @@ impl eframe::App for Renderer {
                 egui::Panel::bottom("metrics")
                     .frame(egui::Frame::default().outer_margin(12.6))
                     .show_inside(ui, |ui| {
-                        ui.label(format!("Altitude: {:.3} km", self.altitude / 1000.0));
-                        ui.label(format!("Velocity: {:.3} km/s", self.velocity / 1000.0));
+                        let current_data_point = self
+                            .data_points
+                            .iter()
+                            .take(self.t_since as usize)
+                            .last()
+                            .unwrap_or(&types::GraphDataPoint {
+                                point: [f64::NAN, f64::NAN],
+                                altitude: 0.0,
+                                velocity: 0.0,
+                            });
+
+                        ui.label(format!(
+                            "Altitude: {:.3} km",
+                            current_data_point.altitude / 1000.0
+                        ));
+                        ui.label(format!(
+                            "Velocity: {:.3} km/s",
+                            current_data_point.velocity / 1000.0
+                        ));
                     });
             });
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
+            let current_data_point = self
+                .data_points
+                .iter()
+                .take(self.t_since as usize)
+                .last()
+                .unwrap_or(&types::GraphDataPoint {
+                    point: [f64::NAN, f64::NAN],
+                    altitude: 0.0,
+                    velocity: 0.0,
+                });
+
             let mut panel_rect = ui.available_rect_before_wrap();
             panel_rect.set_height(panel_rect.width() / 2.0);
 
             egui::Image::new(egui::include_image!(".././images/map.png")).paint_at(ui, panel_rect);
 
             let orbit = PlotPoints::new(
-                self.points
+                self.data_points
                     .iter()
                     .take(self.t_since as usize)
-                    .copied()
+                    .map(|dp| dp.point)
                     .collect::<Vec<_>>(),
             );
             let line = Line::new("orbit", orbit).width(4.0).color(Color32::ORANGE);
 
-            let current_position = self
-                .points
-                .iter()
-                .take(self.t_since as usize)
-                .last()
-                .copied()
-                .unwrap_or([0.0, 0.0]);
-            let points = Points::new("current_position", PlotPoints::new(vec![current_position]))
-                .radius(12.0)
-                .shape(egui_plot::MarkerShape::Diamond)
-                .color(egui::Color32::LIGHT_RED);
+            let points = Points::new(
+                "current_position",
+                PlotPoints::new(vec![current_data_point.point]),
+            )
+            .radius(12.0)
+            .shape(egui_plot::MarkerShape::Diamond)
+            .color(egui::Color32::LIGHT_RED);
 
             let max_x = 180.0;
             let max_y = 80.0;

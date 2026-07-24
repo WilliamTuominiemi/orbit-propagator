@@ -129,3 +129,9 @@ pub struct GraphData {
     pub altitude: f64,
     pub velocity: f64,
 }
+
+pub struct GraphDataPoint {
+    pub point: [f64; 2],
+    pub altitude: f64,
+    pub velocity: f64,
+}
