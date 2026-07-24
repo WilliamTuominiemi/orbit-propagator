@@ -244,8 +244,8 @@ impl eframe::App for Renderer {
                 PlotPoints::new(vec![current_data_point.point]),
             )
             .radius(12.0)
-            .shape(egui_plot::MarkerShape::Diamond)
-            .color(egui::Color32::LIGHT_RED);
+            .shape(egui_plot::MarkerShape::Asterisk)
+            .color(egui::Color32::ORANGE);
 
             let max_x = 170.0;
             let max_y = 80.0;
