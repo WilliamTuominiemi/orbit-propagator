@@ -16,7 +16,7 @@ fn calculate_points(
     let mut data_points = Vec::new();
 
     for i in 0..t_until {
-        let tsince = i as f64 * 0.01;
+        let tsince = i as f64;
         let pav = sgp4.propagate(tsince);
         let pav_m = types::PositionAndVelocity {
             x: pav.x * 1000.0,

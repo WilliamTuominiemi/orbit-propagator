@@ -40,7 +40,7 @@ impl Renderer {
         let xnodeo = test_constants::XNODEO;
         let omegao = test_constants::OMEGAO;
         let bstar = test_constants::BSTAR;
-        let t_until = 27000;
+        let t_until = 900;
         let t_since = t_until / 3;
 
         let data_points = compute_points(eo, bstar, xincl, omegao, xmo, xno, xnodeo, t_until);
