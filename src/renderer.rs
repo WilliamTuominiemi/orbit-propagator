@@ -2,7 +2,7 @@ use eframe::egui;
 use eframe::egui::Color32;
 use egui::Vec2;
 use egui_plot::Line;
-use egui_plot::{Plot, PlotPoints, Points};
+use egui_plot::{Plot, PlotBounds, PlotPoints, Points};
 
 use crate::test_constants;
 use crate::types;
@@ -225,7 +225,10 @@ impl eframe::App for Renderer {
             let mut panel_rect = ui.available_rect_before_wrap();
             panel_rect.set_height(panel_rect.width() / 2.0);
 
-            egui::Image::new(egui::include_image!(".././images/map.png")).paint_at(ui, panel_rect);
+            let offset_x = 30.0;
+            let image_rect = panel_rect.translate(egui::vec2(offset_x, 0.0));
+
+            egui::Image::new(egui::include_image!(".././images/map.png")).paint_at(ui, image_rect);
 
             let orbit = PlotPoints::new(
                 self.data_points
@@ -244,7 +247,7 @@ impl eframe::App for Renderer {
             .shape(egui_plot::MarkerShape::Diamond)
             .color(egui::Color32::LIGHT_RED);
 
-            let max_x = 180.0;
+            let max_x = 170.0;
             let max_y = 80.0;
 
             Plot::new("orbit_plot")
@@ -253,14 +256,15 @@ impl eframe::App for Renderer {
                 .allow_zoom(false)
                 .allow_scroll(false)
                 .grid_color(Color32::WHITE)
-                .show_axes(false)
+                // .show_axes(false)
                 .width(panel_rect.width())
                 .height(panel_rect.height())
-                .include_x(-max_x)
-                .include_x(max_x)
-                .include_y(-max_y)
-                .include_y(max_y)
                 .show(ui, |plot_ui| {
+                    plot_ui.set_plot_bounds(PlotBounds::from_min_max(
+                        [-max_x, -max_y],
+                        [max_x, max_y],
+                    ));
+
                     plot_ui.line(line);
 
                     plot_ui.points(points);
