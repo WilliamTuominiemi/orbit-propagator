@@ -205,8 +205,8 @@ impl eframe::App for Renderer {
                             "Velocity: {:.3} km/s",
                             current_data_point.velocity / 1000.0
                         ));
-                        ui.label(format!("Latitude: {:.6} °", current_data_point.point[1]));
-                        ui.label(format!("Longitude: {:.6} °", current_data_point.point[0]));
+                        ui.label(format!("Latitude: {:.6}°", current_data_point.point[1]));
+                        ui.label(format!("Longitude: {:.6}°", current_data_point.point[0]));
                     });
             });
 
