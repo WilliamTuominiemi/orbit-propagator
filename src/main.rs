@@ -69,8 +69,8 @@ fn compute_points(
         international_designator: "SGP4".to_string(),
         epoch_year_julian_fraction: 80275.98708465,
         first_derivative_of_mean_motion: 0.00073094,
-        second_derivative_of_mean_motion: (13844_f64).powi(-3),
-        drag_term: (66816_f64).powi(-4),
+        second_derivative_of_mean_motion: 0.00013844,
+        drag_term: 0.000066816,
         ephemeris_type: 0,
         element_number_check_sum: 8,
         inclination: 72.8435,
@@ -82,16 +82,7 @@ fn compute_points(
         revolution_number_check_sum: 105,
     };
 
-    let sgp4 = sgp4::Sgp4::new(
-        eo,
-        bstar,
-        xincl,
-        omegao,
-        xmo,
-        xno,
-        xnodeo,
-        test_constants::E6A,
-    );
+    let sgp4 = sgp4::Sgp4::new(norad_tle);
 
     let test_epoch = -7030.01291535; // Spacetrack Report No. 3 base epoch
     let gt = ground_track::GroundTrack::new(test_epoch);

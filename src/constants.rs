@@ -13,3 +13,4 @@ pub const DE2RA: f64 = 0.0174532925;
 pub const TWOPI: f64 = core::f64::consts::TAU;
 pub const PI: f64 = core::f64::consts::PI;
 pub const EARTH_ROTATION_RATE: f64 = 360.985_647_366_286 * DE2RA / 86400.0;
+pub const E6A: f64 = 0.000001;

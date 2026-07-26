@@ -9,7 +9,6 @@ pub struct Sgp4 {
     omegao: f64,
     xmo: f64,
     xnodeo: f64,
-    e6a: f64,
     xmdot: f64,
     omgdot: f64,
     omgcof: f64,
@@ -34,23 +33,22 @@ pub struct Sgp4 {
 }
 
 impl Sgp4 {
-    pub fn new(
-        eo: f64,
-        bstar: f64,
-        xincl: f64,
-        omegao: f64,
-        xmo: f64,
-        xno: f64,
-        xnodeo: f64,
-        e6a: f64,
-    ) -> Self {
-        let mmasmao = helpers::recover_original_mean_motion_and_semimajor_axis(xno, xincl, eo);
-        let (s4, qoms24) = helpers::adjust_atmospheric_drag_for_low_orbit(mmasmao.aodp, eo);
+    pub fn new(tle: types::TLE) -> Self {
+        let xincl = tle.inclination * constants::DE2RA;
+        let xno = tle.mean_motion * (constants::TWOPI / constants::XMNPDA);
+        let omegao = tle.argument_of_perigee * constants::DE2RA;
+        let xmo = tle.mean_anomaly * constants::DE2RA;
+        let xnodeo = tle.right_ascension_of_ascending_node * constants::DE2RA;
+
+        let mmasmao =
+            helpers::recover_original_mean_motion_and_semimajor_axis(xno, xincl, tle.eccentricity);
+        let (s4, qoms24) =
+            helpers::adjust_atmospheric_drag_for_low_orbit(mmasmao.aodp, tle.eccentricity);
 
         let pinvsq = 1.0 / (mmasmao.aodp * mmasmao.aodp * mmasmao.betao2 * mmasmao.betao2);
         let tsi = 1.0 / (mmasmao.aodp - s4);
-        let eta = mmasmao.aodp * eo * tsi;
-        let eeta = eo * eta;
+        let eta = mmasmao.aodp * tle.eccentricity * tsi;
+        let eeta = tle.eccentricity * eta;
 
         let coef = qoms24 * tsi.powf(4.0);
         let sinio = xincl.sin();
@@ -65,10 +63,10 @@ impl Sgp4 {
             eeta,
             tsi,
             mmasmao.x3thm1,
-            bstar,
+            tle.drag_term,
             a3ovk2,
             sinio,
-            eo,
+            tle.eccentricity,
             mmasmao.betao2,
             mmasmao.theta2,
             omegao,
@@ -91,8 +89,8 @@ impl Sgp4 {
             + (0.5 * temp2 * (4.0 - 19.0 * mmasmao.theta2)
                 + 2.0 * temp3 * (3.0 - 7.0 * mmasmao.theta2))
                 * mmasmao.cosio;
-        let omgcof = bstar * c_constants.c3 * omegao.cos();
-        let xmcof = -constants::TOTHRD * coef * bstar * constants::AE / eeta;
+        let omgcof = tle.drag_term * c_constants.c3 * omegao.cos();
+        let xmcof = -constants::TOTHRD * coef * tle.drag_term * constants::AE / eeta;
         let xnodcf = 3.5 * mmasmao.betao2 * xhdot1 * c_constants.c1;
         let t2cof = 1.5 * c_constants.c1;
         let xlcof = 0.125 * a3ovk2 * sinio * (3.0 + 5.0 * mmasmao.cosio) / (1.0 + mmasmao.cosio);
@@ -115,13 +113,12 @@ impl Sgp4 {
                 + 15.0 * c1sq * (2.0 * d_constants.d2 + c1sq));
 
         Sgp4 {
-            eo,
-            bstar,
+            eo: tle.eccentricity,
+            bstar: tle.drag_term,
             xincl,
             omegao,
             xmo,
             xnodeo,
-            e6a,
             xmdot,
             omgdot,
             omgcof,
@@ -277,7 +274,7 @@ impl Sgp4 {
 
             let next_epw =
                 (capu - ayn_cosepw + axn_sinepw - epw) / (1.0 - axn_cosepw - ayn_sinepw) + epw;
-            let converged = (next_epw - epw).abs() <= self.e6a;
+            let converged = (next_epw - epw).abs() <= constants::E6A;
             epw = next_epw;
 
             if converged {
@@ -392,16 +389,26 @@ mod tests {
     use approx::assert_abs_diff_eq;
 
     fn sut() -> Sgp4 {
-        Sgp4::new(
-            test_constants::EO,
-            test_constants::BSTAR,
-            test_constants::XINCL,
-            test_constants::OMEGAO,
-            test_constants::XMO,
-            test_constants::XNO,
-            test_constants::XNODEO,
-            test_constants::E6A,
-        )
+        let norad_tle = types::TLE {
+            name: "SGP4".to_string(),
+            number: 88888,
+            international_designator: "SGP4".to_string(),
+            epoch_year_julian_fraction: 80275.98708465,
+            first_derivative_of_mean_motion: 0.00073094,
+            second_derivative_of_mean_motion: 0.00013844,
+            drag_term: 0.000066816,
+            ephemeris_type: 0,
+            element_number_check_sum: 8,
+            inclination: 72.8435,
+            right_ascension_of_ascending_node: 115.9689,
+            eccentricity: 0.0086731,
+            argument_of_perigee: 52.6988,
+            mean_anomaly: 110.5714,
+            mean_motion: 16.05824518,
+            revolution_number_check_sum: 105,
+        };
+
+        Sgp4::new(norad_tle)
     }
 
     #[test]

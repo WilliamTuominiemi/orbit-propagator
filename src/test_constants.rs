@@ -10,7 +10,6 @@ pub const OMEGAO: f64 = 52.6988 * constants::DE2RA;
 pub const XMO: f64 = 110.5714 * constants::DE2RA;
 pub const TSINCE: f64 = 0.0;
 pub const XNODEO: f64 = 115.9689 * constants::DE2RA;
-pub const E6A: f64 = 0.000001;
 
 // Values from SGP4 sample test case output values
 pub const POSITION_AND_VELOCITY_0: types::PositionAndVelocity = types::PositionAndVelocity {
