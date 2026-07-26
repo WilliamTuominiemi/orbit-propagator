@@ -129,3 +129,22 @@ pub struct GraphDataPoint {
     pub altitude: f64,
     pub velocity: f64,
 }
+
+pub struct TLE {
+    pub name: String,
+    pub number: u32,
+    pub international_designator: String,
+    pub epoch_year_julian_fraction: f64,
+    pub first_derivative_of_mean_motion: f64,
+    pub second_derivative_of_mean_motion: f64,
+    pub drag_term: f64,
+    pub ephemeris_type: u32,
+    pub element_number_check_sum: u32,
+    pub inclination: f64,
+    pub right_ascension_of_ascending_node: f64,
+    pub eccentricity: f64,
+    pub argument_of_perigee: f64,
+    pub mean_anomaly: f64,
+    pub mean_motion: f64,
+    pub revolution_number_check_sum: u32,
+}
