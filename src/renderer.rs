@@ -8,9 +8,10 @@ use crate::test_constants;
 use crate::types;
 
 pub struct Renderer {
-    pub t_until: i32,
+    t_until: i32,
     tle: types::TLE,
     tle_str: types::TLEString,
+    tle_input: String,
     t_until_str: String,
     data_points: Vec<types::GraphDataPoint>,
     pub compute_points: fn(&types::TLE, i32) -> Vec<types::GraphDataPoint>,
@@ -69,6 +70,9 @@ impl Renderer {
         Self {
             tle: norad_tle,
             tle_str: norad_tle_str,
+            tle_input: "1 88888U 80275.98708465 .00073094 13844-3 66816-4 0 8
+2 88888 72.8435 115.9689 0086731 52.6988 110.5714 16.05824518 105"
+                .to_string(),
             t_until_str: t_until.to_string(),
             t_until,
             data_points,
@@ -98,124 +102,93 @@ impl Renderer {
 
 impl eframe::App for Renderer {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        let control_pane_width = 200.0;
-
-        egui::Panel::left("control_pane")
-            .exact_size(control_pane_width)
-            .show_inside(ui, |ui| {
-                egui::Frame::new()
-                    .inner_margin(egui::Margin::same(5))
-                    .show(ui, |ui| {
-                        ui.label("Eccentricity (EO)");
-                        ui.add(egui::TextEdit::singleline(&mut self.tle_str.eccentricity));
-
-                        ui.label("Mean Motion (XNO)");
-                        ui.add(egui::TextEdit::singleline(&mut self.tle_str.mean_motion));
-
-                        ui.label("Mean Anomaly (XMO)");
-                        ui.add(egui::TextEdit::singleline(&mut self.tle_str.mean_anomaly));
-
-                        ui.label("Inclination (XINCL)");
-                        ui.add(egui::TextEdit::singleline(&mut self.tle_str.inclination));
-
-                        ui.label("Right Ascension of the Ascending Node (XNODEO)");
-                        ui.add(egui::TextEdit::singleline(
-                            &mut self.tle_str.right_ascension_of_ascending_node,
-                        ));
-
-                        ui.label("Argument of Perigee (OMEGAO)");
-                        ui.add(egui::TextEdit::singleline(
-                            &mut self.tle_str.argument_of_perigee,
-                        ));
-
-                        ui.label("B-Star Drag Term (BSTAR)");
-                        ui.add(egui::TextEdit::singleline(&mut self.tle_str.drag_term));
-
-                        ui.label("Tracking time");
-                        ui.add(egui::TextEdit::singleline(&mut self.t_until_str));
-                    });
-
-                egui::Frame::new()
-                    .inner_margin(egui::Margin::same(5)) // adjust margin amount as needed
-                    .show(ui, |ui| {
-                        ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                            if ui
-                                .add(
-                                    egui::Button::new("Update graph")
-                                        .min_size(Vec2::new(
-                                            control_pane_width * 0.9,
-                                            control_pane_width * 0.9 / 5.0,
-                                        ))
-                                        .stroke(egui::Stroke::new(2.0, egui::Color32::ORANGE)),
-                                )
-                                .clicked()
-                            {
-                                let parsed = (
-                                    self.tle_str.eccentricity.parse::<f64>(),
-                                    self.tle_str.mean_motion.parse::<f64>(),
-                                    self.tle_str.mean_anomaly.parse::<f64>(),
-                                    self.tle_str.inclination.parse::<f64>(),
-                                    self.tle_str
-                                        .right_ascension_of_ascending_node
-                                        .parse::<f64>(),
-                                    self.tle_str.argument_of_perigee.parse::<f64>(),
-                                    self.tle_str.drag_term.parse::<f64>(),
-                                    self.t_until_str.parse::<i32>(),
-                                );
-
-                                if let (
-                                    Ok(eo),
-                                    Ok(xno),
-                                    Ok(xmo),
-                                    Ok(xincl),
-                                    Ok(xnodeo),
-                                    Ok(omegao),
-                                    Ok(bstar),
-                                    Ok(t_until),
-                                ) = parsed
-                                {
-                                    self.tle.eccentricity = eo;
-                                    self.tle.mean_motion = xno;
-                                    self.tle.mean_anomaly = xmo;
-                                    self.tle.inclination = xincl;
-                                    self.tle.right_ascension_of_ascending_node = xnodeo;
-                                    self.tle.argument_of_perigee = omegao;
-                                    self.tle.drag_term = bstar;
-                                    self.t_until = t_until;
-
-                                    self.data_points =
-                                        (self.compute_points)(&self.tle, self.t_until);
-                                }
-                            }
+        egui::Panel::left("control_pane").show_inside(ui, |ui| {
+            egui::Frame::new()
+                .inner_margin(egui::Margin::same(5))
+                .show(ui, |ui| {
+                    let current_data_point = self
+                        .data_points
+                        .iter()
+                        .take(self.t_since as usize)
+                        .last()
+                        .unwrap_or(&types::GraphDataPoint {
+                            point: [f64::NAN, f64::NAN],
+                            altitude: 0.0,
+                            velocity: 0.0,
                         });
-                    });
 
-                egui::Panel::bottom("metrics")
-                    .frame(egui::Frame::default().outer_margin(12.6))
-                    .show_inside(ui, |ui| {
-                        let current_data_point = self
-                            .data_points
-                            .iter()
-                            .take(self.t_since as usize)
-                            .last()
-                            .unwrap_or(&types::GraphDataPoint {
-                                point: [f64::NAN, f64::NAN],
-                                altitude: 0.0,
-                                velocity: 0.0,
-                            });
+                    ui.label(format!(
+                        "Altitude: {:.3} km",
+                        current_data_point.altitude / 1000.0
+                    ));
+                    ui.label(format!(
+                        "Velocity: {:.3} km/s",
+                        current_data_point.velocity / 1000.0
+                    ));
+                    ui.label(format!("Latitude: {:.6}°", current_data_point.point[1]));
+                    ui.label(format!("Longitude: {:.6}°", current_data_point.point[0]));
+                });
 
-                        ui.label(format!(
-                            "Altitude: {:.3} km",
-                            current_data_point.altitude / 1000.0
-                        ));
-                        ui.label(format!(
-                            "Velocity: {:.3} km/s",
-                            current_data_point.velocity / 1000.0
-                        ));
-                        ui.label(format!("Latitude: {:.6}°", current_data_point.point[1]));
-                        ui.label(format!("Longitude: {:.6}°", current_data_point.point[0]));
+            ui.separator();
+
+            egui::Frame::new()
+                .inner_margin(egui::Margin::same(5))
+                .show(ui, |ui| {
+                    ui.label("Two-line element set");
+                    ui.add(egui::TextEdit::multiline(&mut self.tle_input));
+                });
+
+            egui::Panel::bottom("update_button")
+                .frame(egui::Frame::default().outer_margin(12.6))
+                .show_inside(ui, |ui| {
+                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                        if ui
+                            .add(
+                                egui::Button::new("Update graph")
+                                    .min_size(Vec2::new(200.0, 40.0))
+                                    .stroke(egui::Stroke::new(2.0, egui::Color32::ORANGE)),
+                            )
+                            .clicked()
+                        {
+                            let parsed = (
+                                self.tle_str.eccentricity.parse::<f64>(),
+                                self.tle_str.mean_motion.parse::<f64>(),
+                                self.tle_str.mean_anomaly.parse::<f64>(),
+                                self.tle_str.inclination.parse::<f64>(),
+                                self.tle_str
+                                    .right_ascension_of_ascending_node
+                                    .parse::<f64>(),
+                                self.tle_str.argument_of_perigee.parse::<f64>(),
+                                self.tle_str.drag_term.parse::<f64>(),
+                                self.t_until_str.parse::<i32>(),
+                            );
+
+                            if let (
+                                Ok(eo),
+                                Ok(xno),
+                                Ok(xmo),
+                                Ok(xincl),
+                                Ok(xnodeo),
+                                Ok(omegao),
+                                Ok(bstar),
+                                Ok(t_until),
+                            ) = parsed
+                            {
+                                self.tle.eccentricity = eo;
+                                self.tle.mean_motion = xno;
+                                self.tle.mean_anomaly = xmo;
+                                self.tle.inclination = xincl;
+                                self.tle.right_ascension_of_ascending_node = xnodeo;
+                                self.tle.argument_of_perigee = omegao;
+                                self.tle.drag_term = bstar;
+                                self.t_until = t_until;
+
+                                self.data_points = (self.compute_points)(&self.tle, self.t_until);
+                            }
+                        }
                     });
-            });
+                });
+        });
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
             let current_data_point = self
