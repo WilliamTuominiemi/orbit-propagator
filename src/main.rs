@@ -53,36 +53,8 @@ fn calculate_points(
     data_points
 }
 
-fn compute_points(
-    eo: f64,
-    bstar: f64,
-    xincl: f64,
-    omegao: f64,
-    xmo: f64,
-    xno: f64,
-    xnodeo: f64,
-    t_until: i32,
-) -> Vec<types::GraphDataPoint> {
-    let norad_tle = types::TLE {
-        name: "SGP4".to_string(),
-        number: 88888,
-        international_designator: "SGP4".to_string(),
-        epoch_year_julian_fraction: 80275.98708465,
-        first_derivative_of_mean_motion: 0.00073094,
-        second_derivative_of_mean_motion: 0.00013844,
-        drag_term: 0.000066816,
-        ephemeris_type: 0,
-        element_number_check_sum: 8,
-        inclination: 72.8435,
-        right_ascension_of_ascending_node: 115.9689,
-        eccentricity: 0.0086731,
-        argument_of_perigee: 52.6988,
-        mean_anomaly: 110.5714,
-        mean_motion: 16.05824518,
-        revolution_number_check_sum: 105,
-    };
-
-    let sgp4 = sgp4::Sgp4::new(norad_tle);
+fn compute_points(tle: &types::TLE, t_until: i32) -> Vec<types::GraphDataPoint> {
+    let sgp4 = sgp4::Sgp4::new(tle);
 
     let test_epoch = -7030.01291535; // Spacetrack Report No. 3 base epoch
     let gt = ground_track::GroundTrack::new(test_epoch);

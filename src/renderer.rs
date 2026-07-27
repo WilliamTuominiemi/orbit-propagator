@@ -8,59 +8,68 @@ use crate::test_constants;
 use crate::types;
 
 pub struct Renderer {
-    pub eo: f64,
-    pub xno: f64,
-    pub xmo: f64,
-    pub xincl: f64,
-    pub xnodeo: f64,
-    pub omegao: f64,
-    pub bstar: f64,
     pub t_until: i32,
-    eo_str: String,
-    xno_str: String,
-    xmo_str: String,
-    xincl_str: String,
-    xnodeo_str: String,
-    omegao_str: String,
-    bstar_str: String,
+    tle: types::TLE,
+    tle_str: types::TLEString,
     t_until_str: String,
     data_points: Vec<types::GraphDataPoint>,
-    pub compute_points: fn(f64, f64, f64, f64, f64, f64, f64, i32) -> Vec<types::GraphDataPoint>,
+    pub compute_points: fn(&types::TLE, i32) -> Vec<types::GraphDataPoint>,
     t_since: i32,
 }
 
 impl Renderer {
-    pub fn new(
-        compute_points: fn(f64, f64, f64, f64, f64, f64, f64, i32) -> Vec<types::GraphDataPoint>,
-    ) -> Self {
-        let eo = test_constants::EO;
-        let xno = test_constants::XNO;
-        let xmo = test_constants::XMO;
-        let xincl = test_constants::XINCL;
-        let xnodeo = test_constants::XNODEO;
-        let omegao = test_constants::OMEGAO;
-        let bstar = test_constants::BSTAR;
+    pub fn new(compute_points: fn(&types::TLE, i32) -> Vec<types::GraphDataPoint>) -> Self {
         let t_until = 900;
         let t_since = t_until / 10;
 
-        let data_points = compute_points(eo, bstar, xincl, omegao, xmo, xno, xnodeo, t_until);
+        let norad_tle = types::TLE {
+            name: "SGP4".to_string(),
+            number: 88888,
+            international_designator: "SGP4".to_string(),
+            epoch_year_julian_fraction: 80275.98708465,
+            first_derivative_of_mean_motion: 0.00073094,
+            second_derivative_of_mean_motion: 0.00013844,
+            drag_term: 0.000066816,
+            ephemeris_type: 0,
+            element_number_check_sum: 8,
+            inclination: 72.8435,
+            right_ascension_of_ascending_node: 115.9689,
+            eccentricity: 0.0086731,
+            argument_of_perigee: 52.6988,
+            mean_anomaly: 110.5714,
+            mean_motion: 16.05824518,
+            revolution_number_check_sum: 105,
+        };
+
+        let norad_tle_str = types::TLEString {
+            name: norad_tle.name.clone(),
+            number: norad_tle.number.to_string(),
+            international_designator: norad_tle.international_designator.clone(),
+            epoch_year_julian_fraction: norad_tle.epoch_year_julian_fraction.to_string(),
+            first_derivative_of_mean_motion: norad_tle.first_derivative_of_mean_motion.to_string(),
+            second_derivative_of_mean_motion: norad_tle
+                .second_derivative_of_mean_motion
+                .to_string(),
+            drag_term: norad_tle.drag_term.to_string(),
+            ephemeris_type: norad_tle.ephemeris_type.to_string(),
+            element_number_check_sum: norad_tle.element_number_check_sum.to_string(),
+            inclination: norad_tle.inclination.to_string(),
+            right_ascension_of_ascending_node: norad_tle
+                .right_ascension_of_ascending_node
+                .to_string(),
+            eccentricity: norad_tle.eccentricity.to_string(),
+            argument_of_perigee: norad_tle.argument_of_perigee.to_string(),
+            mean_anomaly: norad_tle.mean_anomaly.to_string(),
+            mean_motion: norad_tle.mean_motion.to_string(),
+            revolution_number_check_sum: norad_tle.revolution_number_check_sum.to_string(),
+        };
+
+        let data_points = compute_points(&norad_tle, t_until);
 
         Self {
-            eo_str: eo.to_string(),
-            xno_str: xno.to_string(),
-            xmo_str: xmo.to_string(),
-            xincl_str: xincl.to_string(),
-            xnodeo_str: xnodeo.to_string(),
-            omegao_str: omegao.to_string(),
-            bstar_str: bstar.to_string(),
+            tle: norad_tle,
+            tle_str: norad_tle_str,
             t_until_str: t_until.to_string(),
-            eo,
-            xno,
-            xmo,
-            xincl,
-            xnodeo,
-            omegao,
-            bstar,
             t_until,
             data_points,
             compute_points,
@@ -98,25 +107,29 @@ impl eframe::App for Renderer {
                     .inner_margin(egui::Margin::same(5))
                     .show(ui, |ui| {
                         ui.label("Eccentricity (EO)");
-                        ui.add(egui::TextEdit::singleline(&mut self.eo_str));
+                        ui.add(egui::TextEdit::singleline(&mut self.tle_str.eccentricity));
 
                         ui.label("Mean Motion (XNO)");
-                        ui.add(egui::TextEdit::singleline(&mut self.xno_str));
+                        ui.add(egui::TextEdit::singleline(&mut self.tle_str.mean_motion));
 
                         ui.label("Mean Anomaly (XMO)");
-                        ui.add(egui::TextEdit::singleline(&mut self.xmo_str));
+                        ui.add(egui::TextEdit::singleline(&mut self.tle_str.mean_anomaly));
 
                         ui.label("Inclination (XINCL)");
-                        ui.add(egui::TextEdit::singleline(&mut self.xincl_str));
+                        ui.add(egui::TextEdit::singleline(&mut self.tle_str.inclination));
 
                         ui.label("Right Ascension of the Ascending Node (XNODEO)");
-                        ui.add(egui::TextEdit::singleline(&mut self.xnodeo_str));
+                        ui.add(egui::TextEdit::singleline(
+                            &mut self.tle_str.right_ascension_of_ascending_node,
+                        ));
 
                         ui.label("Argument of Perigee (OMEGAO)");
-                        ui.add(egui::TextEdit::singleline(&mut self.omegao_str));
+                        ui.add(egui::TextEdit::singleline(
+                            &mut self.tle_str.argument_of_perigee,
+                        ));
 
                         ui.label("B-Star Drag Term (BSTAR)");
-                        ui.add(egui::TextEdit::singleline(&mut self.bstar_str));
+                        ui.add(egui::TextEdit::singleline(&mut self.tle_str.drag_term));
 
                         ui.label("Tracking time");
                         ui.add(egui::TextEdit::singleline(&mut self.t_until_str));
@@ -138,13 +151,15 @@ impl eframe::App for Renderer {
                                 .clicked()
                             {
                                 let parsed = (
-                                    self.eo_str.parse::<f64>(),
-                                    self.xno_str.parse::<f64>(),
-                                    self.xmo_str.parse::<f64>(),
-                                    self.xincl_str.parse::<f64>(),
-                                    self.xnodeo_str.parse::<f64>(),
-                                    self.omegao_str.parse::<f64>(),
-                                    self.bstar_str.parse::<f64>(),
+                                    self.tle_str.eccentricity.parse::<f64>(),
+                                    self.tle_str.mean_motion.parse::<f64>(),
+                                    self.tle_str.mean_anomaly.parse::<f64>(),
+                                    self.tle_str.inclination.parse::<f64>(),
+                                    self.tle_str
+                                        .right_ascension_of_ascending_node
+                                        .parse::<f64>(),
+                                    self.tle_str.argument_of_perigee.parse::<f64>(),
+                                    self.tle_str.drag_term.parse::<f64>(),
                                     self.t_until_str.parse::<i32>(),
                                 );
 
@@ -159,25 +174,17 @@ impl eframe::App for Renderer {
                                     Ok(t_until),
                                 ) = parsed
                                 {
-                                    self.eo = eo;
-                                    self.xno = xno;
-                                    self.xmo = xmo;
-                                    self.xincl = xincl;
-                                    self.xnodeo = xnodeo;
-                                    self.omegao = omegao;
-                                    self.bstar = bstar;
+                                    self.tle.eccentricity = eo;
+                                    self.tle.mean_motion = xno;
+                                    self.tle.mean_anomaly = xmo;
+                                    self.tle.inclination = xincl;
+                                    self.tle.right_ascension_of_ascending_node = xnodeo;
+                                    self.tle.argument_of_perigee = omegao;
+                                    self.tle.drag_term = bstar;
                                     self.t_until = t_until;
 
-                                    self.data_points = (self.compute_points)(
-                                        eo,
-                                        bstar,
-                                        xincl,
-                                        omegao,
-                                        xmo,
-                                        xno,
-                                        xnodeo,
-                                        self.t_until,
-                                    );
+                                    self.data_points =
+                                        (self.compute_points)(&self.tle, self.t_until);
                                 }
                             }
                         });

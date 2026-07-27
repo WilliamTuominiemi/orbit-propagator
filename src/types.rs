@@ -148,3 +148,22 @@ pub struct TLE {
     pub mean_motion: f64,
     pub revolution_number_check_sum: u32,
 }
+
+pub struct TLEString {
+    pub name: String,
+    pub number: String,
+    pub international_designator: String,
+    pub epoch_year_julian_fraction: String,
+    pub first_derivative_of_mean_motion: String,
+    pub second_derivative_of_mean_motion: String,
+    pub drag_term: String,
+    pub ephemeris_type: String,
+    pub element_number_check_sum: String,
+    pub inclination: String,
+    pub right_ascension_of_ascending_node: String,
+    pub eccentricity: String,
+    pub argument_of_perigee: String,
+    pub mean_anomaly: String,
+    pub mean_motion: String,
+    pub revolution_number_check_sum: String,
+}

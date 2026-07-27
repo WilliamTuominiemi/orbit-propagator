@@ -33,7 +33,7 @@ pub struct Sgp4 {
 }
 
 impl Sgp4 {
-    pub fn new(tle: types::TLE) -> Self {
+    pub fn new(tle: &types::TLE) -> Self {
         let xincl = tle.inclination * constants::DE2RA;
         let xno = tle.mean_motion * (constants::TWOPI / constants::XMNPDA);
         let omegao = tle.argument_of_perigee * constants::DE2RA;
@@ -408,7 +408,7 @@ mod tests {
             revolution_number_check_sum: 105,
         };
 
-        Sgp4::new(norad_tle)
+        Sgp4::new(&norad_tle)
     }
 
     #[test]
