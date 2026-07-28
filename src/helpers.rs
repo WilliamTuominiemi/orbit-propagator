@@ -181,7 +181,78 @@ pub fn text_to_tle(input: &String) -> types::TLE {
         eccentricity: format!("0.{}", second_row[3]).parse::<f64>().unwrap(),
         argument_of_perigee: second_row[4].parse::<f64>().unwrap(),
         mean_anomaly: second_row[5].parse::<f64>().unwrap(),
-        mean_motion: second_row[6].parse::<f64>().unwrap(),
+        mean_motion: second_row[6][..10].parse::<f64>().unwrap(),
+    }
+}
+
+pub fn validate_tle(input: &String) -> types::ValidationResponse {
+    let mut valid = true;
+    let mut message = String::new();
+
+    if input.is_empty() {
+        return types::ValidationResponse {
+            valid: false,
+            message: "Input field is empty".to_string(),
+        };
+    }
+
+    let mut row = 0;
+    let mut first_row_columns = 0;
+    let mut second_row_columns = 0;
+
+    if input.chars().nth(0) == Some('1') {
+        valid = false;
+        message = "Satellite name is missing, needs to be added before first row".to_string();
+    }
+
+    for split in input.split_whitespace() {
+        if row == 0 && split.len() == 1 && split == "1" {
+            row = 1;
+            continue;
+        } else if row == 1 && split.len() == 1 && split == "2" {
+            row = 2;
+            continue;
+        }
+
+        if row == 1 {
+            first_row_columns += 1;
+        } else if row == 2 {
+            second_row_columns += 1;
+        }
+    }
+
+    if row != 2 {
+        valid = false;
+        message = "Row missing".to_string();
+    } else if first_row_columns != 8 {
+        valid = false;
+        message = format!(
+            "Wrong number of columns in row 1. Should be 8, is {}",
+            first_row_columns
+        );
+    } else if second_row_columns != 7 {
+        valid = false;
+        message = format!(
+            "Wrong number of columns in row 2. Should be 7, is {}",
+            second_row_columns
+        );
+    }
+
+    if valid {
+        let previous_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {})); // suppress default panic output
+        let result = std::panic::catch_unwind(|| text_to_tle(input));
+        std::panic::set_hook(previous_hook);
+
+        if result.is_err() {
+            valid = false;
+            message = "Failed to parse TLE data".to_string();
+        }
+    }
+
+    types::ValidationResponse {
+        valid,
+        message: message.to_string(),
     }
 }
 
@@ -290,10 +361,7 @@ mod tests {
 
     #[test]
     fn test_text_to_tle() {
-        let input = "SGP4 (SGP4)
-1 88888U 98067A 80275.98708465 .00073094 13844-3 66816-4 0 8
-2 88888 72.8435 115.9689 0086731 52.6988 110.5714 16.05824518 105"
-            .to_string();
+        let input = test_constants::SGP4TLE.to_string();
 
         let tle = text_to_tle(&input);
 
@@ -314,7 +382,7 @@ mod tests {
                 eccentricity: 0.0086731,
                 argument_of_perigee: 52.6988,
                 mean_anomaly: 110.5714,
-                mean_motion: 16.05824518,
+                mean_motion: 16.0582451,
             }
         )
     }
@@ -345,7 +413,7 @@ mod tests {
                 eccentricity: 0.0007093,
                 argument_of_perigee: 345.6120,
                 mean_anomaly: 14.4666,
-                mean_motion: 15.49220842578109,
+                mean_motion: 15.4922084,
             }
         )
     }

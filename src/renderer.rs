@@ -4,13 +4,14 @@ use egui::Vec2;
 use egui_plot::Line;
 use egui_plot::{Plot, PlotBounds, PlotPoints, Points};
 
-use crate::{helpers, types};
+use crate::{helpers, test_constants, types};
 
 pub struct Renderer {
     t_until: i32,
     tle: types::TLE,
     tle_input: String,
     t_until_str: String,
+    tle_validation_error: String,
     data_points: Vec<types::GraphDataPoint>,
     pub compute_points: fn(&types::TLE, i32) -> Vec<types::GraphDataPoint>,
     t_since: i32,
@@ -21,19 +22,17 @@ impl Renderer {
         let t_until = 900;
         let t_since = t_until / 10;
 
-        let tle_input = "SGP4 (SGP4)
-1 88888U 98067A 80275.98708465 .00073094 13844-3 66816-4 0 8
-2 88888 72.8435 115.9689 0086731 52.6988 110.5714 16.05824518 105"
-            .to_string();
+        let tle_input = test_constants::SGP4TLE.to_string();
         let tle = helpers::text_to_tle(&tle_input);
 
         let data_points = compute_points(&tle, t_until);
 
         Self {
+            t_until,
             tle,
             tle_input,
             t_until_str: t_until.to_string(),
-            t_until,
+            tle_validation_error: String::new(),
             data_points,
             compute_points,
             t_since,
@@ -97,6 +96,8 @@ impl eframe::App for Renderer {
                     ui.add(egui::TextEdit::multiline(&mut self.tle_input));
                 });
 
+            ui.label(self.tle_validation_error.clone());
+
             egui::Panel::bottom("update_button")
                 .frame(egui::Frame::default().outer_margin(12.6))
                 .show_inside(ui, |ui| {
@@ -113,7 +114,14 @@ impl eframe::App for Renderer {
 
                             if let (Ok(t_until),) = parsed {
                                 self.t_until = t_until;
-                                self.tle = helpers::text_to_tle(&self.tle_input);
+                                let validation_result = helpers::validate_tle(&self.tle_input);
+
+                                if validation_result.valid {
+                                    self.tle_validation_error = String::new();
+                                    self.tle = helpers::text_to_tle(&self.tle_input);
+                                } else {
+                                    self.tle_validation_error = validation_result.message;
+                                }
 
                                 self.data_points = (self.compute_points)(&self.tle, self.t_until);
                             }

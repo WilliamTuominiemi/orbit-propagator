@@ -166,3 +166,8 @@ pub struct TLEString {
     pub mean_anomaly: String,
     pub mean_motion: String,
 }
+
+pub struct ValidationResponse {
+    pub valid: bool,
+    pub message: String,
+}
