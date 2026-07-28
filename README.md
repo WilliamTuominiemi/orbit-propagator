@@ -19,19 +19,14 @@ They are converted ECI [-> ECEF](https://space.stackexchange.com/questions/38807
 
 Test case from SPACETRACK REPORT NO. 3 with inputs and outputs, used to validate SGP4 part of implementation.
 
-### Input values
+### Input
 
-These are just the ones actually used in the algorithm.
+Two-line element set ([TLE](https://celestrak.org/NORAD/documentation/tle-fmt.php))
 
-| Variable      | Value         | What it is                        |
-| ------------- | ------------- | --------------------------------- |
-| EO            | 0.0086731     | Eccentricity                      |
-| BSTAR         | 0.000066816   | Drag term                         |
-| XINCL         | 72.8435°      | Inclination                       |
-| OMEGAO        | 52.6988°      | Argument of perigee               |
-| XMO           | 110.5714°     | Mean anomaly                      |
-| XNO           | 16.05824518   | Mean motion                       | 
-| XNODEO        | 115.9689°     | Right ascension of ascending node |
+```
+1 88888U 80275.98708465 .00073094 13844-3 66816-4 0 8
+2 88888 72.8435 115.9689 0086731 52.6988 110.5714 16.05824518 105
+```
 
 ### Output values
 
