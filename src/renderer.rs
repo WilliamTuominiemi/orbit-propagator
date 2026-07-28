@@ -4,12 +4,11 @@ use egui::Vec2;
 use egui_plot::Line;
 use egui_plot::{Plot, PlotBounds, PlotPoints, Points};
 
-use crate::types;
+use crate::{helpers, types};
 
 pub struct Renderer {
     t_until: i32,
     tle: types::TLE,
-    tle_str: types::TLEString,
     tle_input: String,
     t_until_str: String,
     data_points: Vec<types::GraphDataPoint>,
@@ -22,54 +21,17 @@ impl Renderer {
         let t_until = 900;
         let t_since = t_until / 10;
 
-        let norad_tle = types::TLE {
-            name: "SGP4".to_string(),
-            number: "88888U".to_string(),
-            international_designator: "SGP4".to_string(),
-            epoch_year_julian_fraction: 80275.98708465,
-            first_derivative_of_mean_motion: 0.00073094,
-            second_derivative_of_mean_motion: 0.00013844,
-            drag_term: 0.000066816,
-            ephemeris_type: 0,
-            element_number_check_sum: 8,
-            inclination: 72.8435,
-            right_ascension_of_ascending_node: 115.9689,
-            eccentricity: 0.0086731,
-            argument_of_perigee: 52.6988,
-            mean_anomaly: 110.5714,
-            mean_motion: 16.05824518,
-        };
+        let tle_input = "SGP4 (SGP4)
+1 88888U 98067A 80275.98708465 .00073094 13844-3 66816-4 0 8
+2 88888 72.8435 115.9689 0086731 52.6988 110.5714 16.05824518 105"
+            .to_string();
+        let tle = helpers::text_to_tle(&tle_input);
 
-        let norad_tle_str = types::TLEString {
-            name: norad_tle.name.clone(),
-            number: norad_tle.number.to_string(),
-            international_designator: norad_tle.international_designator.clone(),
-            epoch_year_julian_fraction: norad_tle.epoch_year_julian_fraction.to_string(),
-            first_derivative_of_mean_motion: norad_tle.first_derivative_of_mean_motion.to_string(),
-            second_derivative_of_mean_motion: norad_tle
-                .second_derivative_of_mean_motion
-                .to_string(),
-            drag_term: norad_tle.drag_term.to_string(),
-            ephemeris_type: norad_tle.ephemeris_type.to_string(),
-            element_number_check_sum: norad_tle.element_number_check_sum.to_string(),
-            inclination: norad_tle.inclination.to_string(),
-            right_ascension_of_ascending_node: norad_tle
-                .right_ascension_of_ascending_node
-                .to_string(),
-            eccentricity: norad_tle.eccentricity.to_string(),
-            argument_of_perigee: norad_tle.argument_of_perigee.to_string(),
-            mean_anomaly: norad_tle.mean_anomaly.to_string(),
-            mean_motion: norad_tle.mean_motion.to_string(),
-        };
-
-        let data_points = compute_points(&norad_tle, t_until);
+        let data_points = compute_points(&tle, t_until);
 
         Self {
-            tle: norad_tle,
-            tle_str: norad_tle_str,
-            tle_input: "1 88888U 80275.98708465 .00073094 13844-3 66816-4 0 8
-2 88888 72.8435 115.9689 0086731 52.6988 110.5714 16.05824518 105"
-                .to_string(),
+            tle,
+            tle_input,
             t_until_str: t_until.to_string(),
             t_until,
             data_points,
@@ -147,38 +109,11 @@ impl eframe::App for Renderer {
                             )
                             .clicked()
                         {
-                            let parsed = (
-                                self.tle_str.eccentricity.parse::<f64>(),
-                                self.tle_str.mean_motion.parse::<f64>(),
-                                self.tle_str.mean_anomaly.parse::<f64>(),
-                                self.tle_str.inclination.parse::<f64>(),
-                                self.tle_str
-                                    .right_ascension_of_ascending_node
-                                    .parse::<f64>(),
-                                self.tle_str.argument_of_perigee.parse::<f64>(),
-                                self.tle_str.drag_term.parse::<f64>(),
-                                self.t_until_str.parse::<i32>(),
-                            );
+                            let parsed = (self.t_until_str.parse::<i32>(),);
 
-                            if let (
-                                Ok(eo),
-                                Ok(xno),
-                                Ok(xmo),
-                                Ok(xincl),
-                                Ok(xnodeo),
-                                Ok(omegao),
-                                Ok(bstar),
-                                Ok(t_until),
-                            ) = parsed
-                            {
-                                self.tle.eccentricity = eo;
-                                self.tle.mean_motion = xno;
-                                self.tle.mean_anomaly = xmo;
-                                self.tle.inclination = xincl;
-                                self.tle.right_ascension_of_ascending_node = xnodeo;
-                                self.tle.argument_of_perigee = omegao;
-                                self.tle.drag_term = bstar;
+                            if let (Ok(t_until),) = parsed {
                                 self.t_until = t_until;
+                                self.tle = helpers::text_to_tle(&self.tle_input);
 
                                 self.data_points = (self.compute_points)(&self.tle, self.t_until);
                             }

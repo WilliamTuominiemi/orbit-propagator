@@ -135,7 +135,7 @@ fn format_tle_split_with_negative_exponent(input: &str) -> f64 {
     base * 10.0_f64.powi(-exponent)
 }
 
-pub fn text_to_tle(input: String) -> types::TLE {
+pub fn text_to_tle(input: &String) -> types::TLE {
     let mut row = 0;
 
     let mut name = "".to_string();
@@ -295,7 +295,7 @@ mod tests {
 2 88888 72.8435 115.9689 0086731 52.6988 110.5714 16.05824518 105"
             .to_string();
 
-        let tle = text_to_tle(input);
+        let tle = text_to_tle(&input);
 
         assert_eq!(
             tle,
@@ -326,7 +326,7 @@ mod tests {
 2 25544  51.6320  97.3682 0007093 345.6120  14.4666 15.49220842578109"
             .to_string();
 
-        let tle = text_to_tle(input);
+        let tle = text_to_tle(&input);
 
         assert_eq!(
             tle,
