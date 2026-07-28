@@ -94,9 +94,12 @@ impl eframe::App for Renderer {
                 .show(ui, |ui| {
                     ui.label("Two-line element set");
                     ui.add(egui::TextEdit::multiline(&mut self.tle_input));
-                });
 
-            ui.label(self.tle_validation_error.clone());
+                    ui.label("Tracking time period");
+                    ui.add(egui::TextEdit::singleline(&mut self.t_until_str));
+
+                    ui.label(self.tle_validation_error.clone());
+                });
 
             egui::Panel::bottom("update_button")
                 .frame(egui::Frame::default().outer_margin(12.6))
