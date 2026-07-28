@@ -121,6 +121,70 @@ pub fn actan(sinx: f64, cosx: f64) -> f64 {
     }
 }
 
+fn format_tle_split_with_negative_exponent(input: &str) -> f64 {
+    assert!(
+        input.chars().any(|c| matches!(c, '-')),
+        "value is in wrong format"
+    );
+
+    let exponent = input.chars().last().unwrap().to_digit(10).unwrap() as i32;
+    let base = format!("0.{}", &input[..input.len() - 2])
+        .parse::<f64>()
+        .unwrap();
+
+    base * 10.0_f64.powi(-exponent)
+}
+
+pub fn text_to_tle(input: String) -> types::TLE {
+    let mut row = 0;
+
+    let mut name = "".to_string();
+
+    let mut first_row: Vec<&str> = vec![];
+    let mut second_row: Vec<&str> = vec![];
+
+    for split in input.split_whitespace() {
+        if row == 0 && split.len() == 1 && split == "1" {
+            row = 1;
+            continue;
+        } else if row == 1 && split.len() == 1 && split == "2" {
+            row = 2;
+            continue;
+        }
+
+        if row == 0 {
+            name += split;
+        } else if row == 1 {
+            first_row.push(split);
+        } else if row == 2 {
+            second_row.push(split);
+        }
+    }
+
+    let fdomm = first_row[3];
+    let formatted_first_derivative_of_mean_motion = format!("0{fdomm}");
+
+    types::TLE {
+        name,
+        number: first_row[0].to_string(),
+        international_designator: first_row[1].to_string(),
+        epoch_year_julian_fraction: first_row[2].parse::<f64>().unwrap(),
+        first_derivative_of_mean_motion: formatted_first_derivative_of_mean_motion
+            .parse::<f64>()
+            .unwrap(),
+        second_derivative_of_mean_motion: format_tle_split_with_negative_exponent(first_row[4]),
+        drag_term: format_tle_split_with_negative_exponent(first_row[5]),
+        ephemeris_type: first_row[6].parse::<u32>().unwrap(),
+        element_number_check_sum: first_row[7].parse::<u32>().unwrap(),
+        inclination: second_row[1].parse::<f64>().unwrap(),
+        right_ascension_of_ascending_node: second_row[2].parse::<f64>().unwrap(),
+        eccentricity: format!("0.{}", second_row[3]).parse::<f64>().unwrap(),
+        argument_of_perigee: second_row[4].parse::<f64>().unwrap(),
+        mean_anomaly: second_row[5].parse::<f64>().unwrap(),
+        mean_motion: second_row[6].parse::<f64>().unwrap(),
+    }
+}
+
 use approx::assert_abs_diff_eq;
 
 pub fn assert_approx(first: f64, second: f64) {
@@ -210,5 +274,79 @@ mod tests {
         assert_eq!(d_constants.d2, 8.12550142270866e-14);
         assert_eq!(d_constants.d3, 4.2372075736327043e-19);
         assert_eq!(d_constants.d4, 2.5770097992217537e-24);
+    }
+
+    #[test]
+    fn test_format_tle_split_with_negative_exponent() {
+        assert_eq!(
+            format_tle_split_with_negative_exponent("13844-3"),
+            0.00013844
+        );
+        assert_eq!(
+            format_tle_split_with_negative_exponent("66816-4"),
+            0.000066816
+        );
+    }
+
+    #[test]
+    fn test_text_to_tle() {
+        let input = "SGP4 (SGP4)
+1 88888U 98067A 80275.98708465 .00073094 13844-3 66816-4 0 8
+2 88888 72.8435 115.9689 0086731 52.6988 110.5714 16.05824518 105"
+            .to_string();
+
+        let tle = text_to_tle(input);
+
+        assert_eq!(
+            tle,
+            types::TLE {
+                name: "SGP4(SGP4)".to_string(),
+                number: "88888U".to_string(),
+                international_designator: "98067A".to_string(),
+                epoch_year_julian_fraction: 80275.98708465,
+                first_derivative_of_mean_motion: 0.00073094,
+                second_derivative_of_mean_motion: 0.00013844,
+                drag_term: 0.000066816,
+                ephemeris_type: 0,
+                element_number_check_sum: 8,
+                inclination: 72.8435,
+                right_ascension_of_ascending_node: 115.9689,
+                eccentricity: 0.0086731,
+                argument_of_perigee: 52.6988,
+                mean_anomaly: 110.5714,
+                mean_motion: 16.05824518,
+            }
+        )
+    }
+
+    #[test]
+    fn test_text_to_tle_2() {
+        let input = "ISS (ZARYA)
+1 25544U 98067A   26209.15252568  .00010831  00000-0  20282-3 0  9993
+2 25544  51.6320  97.3682 0007093 345.6120  14.4666 15.49220842578109"
+            .to_string();
+
+        let tle = text_to_tle(input);
+
+        assert_eq!(
+            tle,
+            types::TLE {
+                name: "ISS(ZARYA)".to_string(),
+                number: "25544U".to_string(),
+                international_designator: "98067A".to_string(),
+                epoch_year_julian_fraction: 26209.15252568,
+                first_derivative_of_mean_motion: 0.00010831,
+                second_derivative_of_mean_motion: 0.0,
+                drag_term: 0.00020282,
+                ephemeris_type: 0,
+                element_number_check_sum: 9993,
+                inclination: 51.6320,
+                right_ascension_of_ascending_node: 97.3682,
+                eccentricity: 0.0007093,
+                argument_of_perigee: 345.6120,
+                mean_anomaly: 14.4666,
+                mean_motion: 15.49220842578109,
+            }
+        )
     }
 }

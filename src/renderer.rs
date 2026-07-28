@@ -4,7 +4,6 @@ use egui::Vec2;
 use egui_plot::Line;
 use egui_plot::{Plot, PlotBounds, PlotPoints, Points};
 
-use crate::test_constants;
 use crate::types;
 
 pub struct Renderer {
@@ -25,7 +24,7 @@ impl Renderer {
 
         let norad_tle = types::TLE {
             name: "SGP4".to_string(),
-            number: 88888,
+            number: "88888U".to_string(),
             international_designator: "SGP4".to_string(),
             epoch_year_julian_fraction: 80275.98708465,
             first_derivative_of_mean_motion: 0.00073094,
@@ -39,7 +38,6 @@ impl Renderer {
             argument_of_perigee: 52.6988,
             mean_anomaly: 110.5714,
             mean_motion: 16.05824518,
-            revolution_number_check_sum: 105,
         };
 
         let norad_tle_str = types::TLEString {
@@ -62,7 +60,6 @@ impl Renderer {
             argument_of_perigee: norad_tle.argument_of_perigee.to_string(),
             mean_anomaly: norad_tle.mean_anomaly.to_string(),
             mean_motion: norad_tle.mean_motion.to_string(),
-            revolution_number_check_sum: norad_tle.revolution_number_check_sum.to_string(),
         };
 
         let data_points = compute_points(&norad_tle, t_until);

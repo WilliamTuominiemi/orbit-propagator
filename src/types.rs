@@ -130,9 +130,10 @@ pub struct GraphDataPoint {
     pub velocity: f64,
 }
 
+#[derive(PartialEq, Debug)]
 pub struct TLE {
     pub name: String,
-    pub number: u32,
+    pub number: String,
     pub international_designator: String,
     pub epoch_year_julian_fraction: f64,
     pub first_derivative_of_mean_motion: f64,
@@ -146,7 +147,6 @@ pub struct TLE {
     pub argument_of_perigee: f64,
     pub mean_anomaly: f64,
     pub mean_motion: f64,
-    pub revolution_number_check_sum: u32,
 }
 
 pub struct TLEString {
@@ -165,5 +165,4 @@ pub struct TLEString {
     pub argument_of_perigee: String,
     pub mean_anomaly: String,
     pub mean_motion: String,
-    pub revolution_number_check_sum: String,
 }

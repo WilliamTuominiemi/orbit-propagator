@@ -391,7 +391,7 @@ mod tests {
     fn sut() -> Sgp4 {
         let norad_tle = types::TLE {
             name: "SGP4".to_string(),
-            number: 88888,
+            number: "88888U".to_string(),
             international_designator: "SGP4".to_string(),
             epoch_year_julian_fraction: 80275.98708465,
             first_derivative_of_mean_motion: 0.00073094,
@@ -405,7 +405,6 @@ mod tests {
             argument_of_perigee: 52.6988,
             mean_anomaly: 110.5714,
             mean_motion: 16.05824518,
-            revolution_number_check_sum: 105,
         };
 
         Sgp4::new(&norad_tle)
