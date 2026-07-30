@@ -55,9 +55,7 @@ fn calculate_points(
 
 fn compute_points(tle: &types::TLE, t_until: i32) -> Vec<types::GraphDataPoint> {
     let sgp4 = sgp4::Sgp4::new(tle);
-
-    let test_epoch = -7030.01291535; // Spacetrack Report No. 3 base epoch
-    let gt = ground_track::GroundTrack::new(test_epoch);
+    let gt = ground_track::GroundTrack::new(tle.epoch_year_julian_fraction.clone());
     calculate_points(&sgp4, &gt, t_until)
 }
 

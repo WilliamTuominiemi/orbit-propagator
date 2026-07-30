@@ -2,12 +2,14 @@ use crate::constants;
 use crate::types;
 
 pub struct GroundTrack {
-    pub base_ut1: f64,
+    pub epoch_year_julian_fraction: String,
 }
 
 impl GroundTrack {
-    pub fn new(base_ut1: f64) -> Self {
-        GroundTrack { base_ut1 }
+    pub fn new(epoch_year_julian_fraction: String) -> Self {
+        GroundTrack {
+            epoch_year_julian_fraction,
+        }
     }
 
     pub fn eci_to_geodetic(
@@ -216,7 +218,8 @@ impl GroundTrack {
     }
 
     fn tsince_to_ut1(&self, tsince: f64) -> f64 {
-        self.base_ut1 + (tsince / 1440.0)
+        let ut1 = self.epoch_into_days_since_J2000();
+        ut1 + (tsince / 1440.0)
     }
 
     fn ecef_velocity_to_enu(
@@ -238,6 +241,34 @@ impl GroundTrack {
 
         (east, north, up)
     }
+
+    fn epoch_into_days_since_J2000(&self) -> f64 {
+        let year_str = &self.epoch_year_julian_fraction[0..2];
+        let day_of_year_str = &self.epoch_year_julian_fraction[2..];
+
+        let mut year: i32 = year_str.parse().unwrap();
+        let day_of_year: f64 = day_of_year_str.parse().unwrap();
+
+        let j2000 = 2451545.0;
+
+        if year < 57 {
+            year += 2000;
+        } else {
+            year += 1900;
+        }
+
+        let y = (year - 1) as f64;
+        let A = (y / 100.0_f64).floor();
+        let B = 2.0_f64 - A + (A / 4.0_f64).floor();
+
+        let jd_jan_0 =
+            (365.25_f64 * (y + 4716.0_f64)).floor() + (30.6001_f64 * 14.0_f64).floor() + B
+                - 1524.5_f64;
+
+        let jd = jd_jan_0 + day_of_year;
+
+        jd - j2000
+    }
 }
 
 #[cfg(test)]
@@ -247,7 +278,7 @@ mod tests {
 
     #[test]
     fn test_eci_to_geodetic() {
-        let ground_track = GroundTrack::new(-7030.01291535);
+        let ground_track = GroundTrack::new("80275.98708465".to_string());
 
         let pav = types::PositionAndVelocity {
             x: 4263871.9243,
@@ -262,29 +293,29 @@ mod tests {
 
         let geodetic = ground_track.eci_to_geodetic(tsince, pav);
 
-        helpers::assert_approx(geodetic.lat.to_degrees(), 47.30146555853809);
-        helpers::assert_approx(geodetic.lon.to_degrees(), 3.1469077695449643);
-        helpers::assert_approx(geodetic.alt, 438.2566027827561);
+        helpers::assert_approx(geodetic.lat.to_degrees(), 47.301461267437865);
+        helpers::assert_approx(geodetic.lon.to_degrees(), -176.36028751239033);
+        helpers::assert_approx(geodetic.alt, 438.2550053251907);
     }
 
     #[test]
     fn test_calculate_rotation_matrix() {
-        let ut1 = 0.5;
+        let ut1 = "80275.98708465".to_string();
 
         let ground_track = GroundTrack::new(ut1);
 
-        let eterm = ground_track.calculate_rotation_matrix(ut1);
+        let eterm = ground_track.calculate_rotation_matrix(-7030.512915350031);
 
         let expected_output = types::RotationMatrix {
-            m0: 0.18155964819521067,
-            m1: -0.9833799334794167,
-            m2: -2.40260147885129e-5,
-            m3: 0.9833799334210463,
-            m4: 0.18155964742246256,
-            m5: 3.118733126373619e-5,
-            m6: -2.630684096956415e-5,
-            m7: -2.9289061715492326e-5,
-            m8: 0.9999999992250505,
+            m0: -0.9945905437510192,
+            m1: -0.10385609314679319,
+            m2: -0.0018873784295872415,
+            m3: 0.10385597135741614,
+            m4: -0.9945923339469838,
+            m5: 0.00016268773489335004,
+            m6: -0.001894068229873292,
+            m7: -3.4207837414618897e-5,
+            m8: 0.9999982056660726,
         };
 
         assert_eq!(eterm, expected_output);
@@ -316,7 +347,7 @@ mod tests {
             m8: 3.0,
         };
 
-        let ground_track = GroundTrack::new(0.5);
+        let ground_track = GroundTrack::new("80275.98708465".to_string());
 
         let result = ground_track.multiply_matrix(first, second);
 
@@ -334,5 +365,14 @@ mod tests {
                 m8: 4.0,
             }
         )
+    }
+
+    #[test]
+    fn test_epoch_into_days_since_J2000() {
+        let epoch_year_julian_fraction = "80275.98708465".to_string();
+        let ground_track = GroundTrack::new(epoch_year_julian_fraction);
+        let days_since_j2000 = ground_track.epoch_into_days_since_J2000();
+
+        assert_eq!(days_since_j2000, -7030.512915350031);
     }
 }

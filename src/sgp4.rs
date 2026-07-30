@@ -393,7 +393,7 @@ mod tests {
             name: "SGP4".to_string(),
             number: "88888U".to_string(),
             international_designator: "SGP4".to_string(),
-            epoch_year_julian_fraction: 80275.98708465,
+            epoch_year_julian_fraction: "80275.98708465".to_string(),
             first_derivative_of_mean_motion: 0.00073094,
             second_derivative_of_mean_motion: 0.00013844,
             drag_term: 0.000066816,

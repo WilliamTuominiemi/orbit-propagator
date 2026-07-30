@@ -24,8 +24,9 @@ Test case from SPACETRACK REPORT NO. 3 with inputs and outputs, used to validate
 Two-line element set ([TLE](https://celestrak.org/NORAD/documentation/tle-fmt.php))
 
 ```
-1 88888U 80275.98708465 .00073094 13844-3 66816-4 0 8
-2 88888 72.8435 115.9689 0086731 52.6988 110.5714 16.05824518 105
+SGP4 (SGP4)
+1 88888U 80081S 80275.98708465 .00073094 13844-3 66816-4 0 8
+2 88888 72.8435 115.9689 0086731 52.6988 110.5714 16.05824518105
 ```
 
 ### Output values

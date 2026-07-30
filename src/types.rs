@@ -135,7 +135,7 @@ pub struct TLE {
     pub name: String,
     pub number: String,
     pub international_designator: String,
-    pub epoch_year_julian_fraction: f64,
+    pub epoch_year_julian_fraction: String,
     pub first_derivative_of_mean_motion: f64,
     pub second_derivative_of_mean_motion: f64,
     pub drag_term: f64,

@@ -168,7 +168,7 @@ pub fn text_to_tle(input: &String) -> types::TLE {
         name,
         number: first_row[0].to_string(),
         international_designator: first_row[1].to_string(),
-        epoch_year_julian_fraction: first_row[2].parse::<f64>().unwrap(),
+        epoch_year_julian_fraction: first_row[2].to_string(),
         first_derivative_of_mean_motion: formatted_first_derivative_of_mean_motion
             .parse::<f64>()
             .unwrap(),
@@ -370,8 +370,8 @@ mod tests {
             types::TLE {
                 name: "SGP4(SGP4)".to_string(),
                 number: "88888U".to_string(),
-                international_designator: "98067A".to_string(),
-                epoch_year_julian_fraction: 80275.98708465,
+                international_designator: "80081S".to_string(),
+                epoch_year_julian_fraction: "80275.98708465".to_string(),
                 first_derivative_of_mean_motion: 0.00073094,
                 second_derivative_of_mean_motion: 0.00013844,
                 drag_term: 0.000066816,
@@ -402,7 +402,7 @@ mod tests {
                 name: "ISS(ZARYA)".to_string(),
                 number: "25544U".to_string(),
                 international_designator: "98067A".to_string(),
-                epoch_year_julian_fraction: 26209.15252568,
+                epoch_year_julian_fraction: "26209.15252568".to_string(),
                 first_derivative_of_mean_motion: 0.00010831,
                 second_derivative_of_mean_motion: 0.0,
                 drag_term: 0.00020282,
