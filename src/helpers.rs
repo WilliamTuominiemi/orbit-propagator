@@ -185,6 +185,51 @@ pub fn text_to_tle(input: &String) -> types::TLE {
     }
 }
 
+fn checksum(input: &String) -> bool {
+    let mut row = 0;
+    let mut first_row = "".to_string();
+    let mut second_row = "".to_string();
+
+    for split in input.split_whitespace() {
+        if row == 0 && split.len() == 1 && split == "1" {
+            row = 1;
+        } else if row == 1 && split.len() == 1 && split == "2" {
+            row = 2;
+        }
+
+        if row == 1 {
+            first_row += split;
+        } else if row == 2 {
+            second_row += split;
+        }
+    }
+
+    let mut first_row_sum = 0;
+    let first_row_checksum = first_row.pop().unwrap().to_digit(10).unwrap();
+
+    for c in first_row.chars() {
+        if c == '-' {
+            first_row_sum += 1;
+        } else if let Some(n) = c.to_digit(10) {
+            first_row_sum += n as u32;
+        }
+    }
+
+    let mut second_row_sum = 0;
+    let second_row_checksum = second_row.pop().unwrap().to_digit(10).unwrap();
+
+    for c in second_row.chars() {
+        if c == '-' {
+            second_row_sum += 1;
+        } else if let Some(n) = c.to_digit(10) {
+            second_row_sum += n as u32;
+        }
+    }
+
+    return (first_row_checksum == first_row_sum % 10)
+        && (second_row_checksum == second_row_sum % 10);
+}
+
 pub fn validate_tle(input: &String) -> types::ValidationResponse {
     let mut valid = true;
     let mut message = String::new();
@@ -247,6 +292,15 @@ pub fn validate_tle(input: &String) -> types::ValidationResponse {
         if result.is_err() {
             valid = false;
             message = "Failed to parse TLE data".to_string();
+        }
+    }
+
+    if valid {
+        let check = checksum(input);
+
+        if !check {
+            valid = false;
+            message = "TLE checksum failed".to_string();
         }
     }
 
@@ -376,13 +430,13 @@ mod tests {
                 second_derivative_of_mean_motion: 0.00013844,
                 drag_term: 0.000066816,
                 ephemeris_type: 0,
-                element_number_check_sum: 8,
+                element_number_check_sum: 6,
                 inclination: 72.8435,
                 right_ascension_of_ascending_node: 115.9689,
                 eccentricity: 0.0086731,
                 argument_of_perigee: 52.6988,
                 mean_anomaly: 110.5714,
-                mean_motion: 16.0582451,
+                mean_motion: 16.0582471,
             }
         )
     }
@@ -416,5 +470,40 @@ mod tests {
                 mean_motion: 15.4922084,
             }
         )
+    }
+
+    #[test]
+    fn test_checksum() {
+        let input = test_constants::SGP4TLE.to_string();
+
+        let input2 = "ISS (ZARYA)
+1 25544U 98067A   26209.15252568  .00010831  00000-0  20282-3 0  9993
+2 25544  51.6320  97.3682 0007093 345.6120  14.4666 15.49220842578109"
+            .to_string();
+
+        let input3 = "NOAA 14                 
+1 23455U 94089A   97320.90946019  .00000140  00000-0  10191-3 0  2621
+2 23455  99.0090 272.6745 0008546 223.1686 136.8816 14.11711747148495"
+            .to_string();
+
+        assert!(checksum(&input));
+        assert!(checksum(&input2));
+        assert!(checksum(&input3));
+    }
+
+    #[test]
+    fn test_checksum_2() {
+        let input2 = "ISS (ZARYA)
+    1 25544U 98067A   26209.15252568  .00010831  00000-0  20282-3 0  9997
+    2 25544  51.6320  97.3682 0007093 345.6120  14.4666 15.49220842578109"
+            .to_string();
+
+        let input3 = "NOAA 14
+    1 23455U 94089A   97320.90946019  .00000140  00000-0  10191-3 0  2621
+    2 23455  99.0090 272.6745 0008546 223.1686 136.8816 14.11711747148490"
+            .to_string();
+
+        assert!(!checksum(&input2));
+        assert!(!checksum(&input3));
     }
 }
