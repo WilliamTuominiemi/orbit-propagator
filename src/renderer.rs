@@ -8,17 +8,17 @@ use crate::{helpers, test_constants, types};
 
 pub struct Renderer {
     t_until: i32,
-    tle: types::TLE,
+    tle: types::Tle,
     tle_input: String,
     t_until_str: String,
     tle_validation_error: String,
     data_points: Vec<types::GraphDataPoint>,
-    pub compute_points: fn(&types::TLE, i32) -> Vec<types::GraphDataPoint>,
+    pub compute_points: fn(&types::Tle, i32) -> Vec<types::GraphDataPoint>,
     t_since: i32,
 }
 
 impl Renderer {
-    pub fn new(compute_points: fn(&types::TLE, i32) -> Vec<types::GraphDataPoint>) -> Self {
+    pub fn new(compute_points: fn(&types::Tle, i32) -> Vec<types::GraphDataPoint>) -> Self {
         let t_until = 900;
         let t_since = t_until / 10;
 
@@ -68,7 +68,7 @@ impl eframe::App for Renderer {
                         .data_points
                         .iter()
                         .take(self.t_since as usize)
-                        .last()
+                        .next_back()
                         .unwrap_or(&types::GraphDataPoint {
                             point: [f64::NAN, f64::NAN],
                             altitude: 0.0,
@@ -138,7 +138,7 @@ impl eframe::App for Renderer {
                 .data_points
                 .iter()
                 .take(self.t_since as usize)
-                .last()
+                .next_back()
                 .unwrap_or(&types::GraphDataPoint {
                     point: [f64::NAN, f64::NAN],
                     altitude: 0.0,

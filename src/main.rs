@@ -16,17 +16,17 @@ fn calculate_points(
     let mut data_points = Vec::new();
 
     for i in 0..t_until {
-        let tsince = i as f64;
-        let pav = sgp4.propagate(tsince);
+        let t_since = i as f64;
+        let pav = sgp4.propagate(t_since);
         let pav_m = types::PositionAndVelocity {
             x: pav.x * 1000.0,
             y: pav.y * 1000.0,
             z: pav.z * 1000.0,
-            xdot: pav.xdot * 1000.0,
-            ydot: pav.ydot * 1000.0,
-            zdot: pav.zdot * 1000.0,
+            x_dot: pav.x_dot * 1000.0,
+            y_dot: pav.y_dot * 1000.0,
+            z_dot: pav.z_dot * 1000.0,
         };
-        let geodetic = gt.eci_to_geodetic(tsince, pav_m);
+        let geodetic = gt.eci_to_geodetic(t_since, pav_m);
 
         let lon = geodetic.lon.to_degrees();
         let lat = geodetic.lat.to_degrees();
@@ -53,7 +53,7 @@ fn calculate_points(
     data_points
 }
 
-fn compute_points(tle: &types::TLE, t_until: i32) -> Vec<types::GraphDataPoint> {
+fn compute_points(tle: &types::Tle, t_until: i32) -> Vec<types::GraphDataPoint> {
     let sgp4 = sgp4::Sgp4::new(tle);
     let gt = ground_track::GroundTrack::new(tle.epoch_year_julian_fraction.clone());
     calculate_points(&sgp4, &gt, t_until)

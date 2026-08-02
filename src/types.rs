@@ -44,7 +44,7 @@ pub struct LongPeriodicsOutput {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct ShortPeriodPrelimenaryQuantities {
+pub struct ShortPeriodPreliminaryQuantities {
     pub r: f64,
     pub rdot: f64,
     pub rfdot: f64,
@@ -86,9 +86,9 @@ pub struct PositionAndVelocity {
     pub x: f64,
     pub y: f64,
     pub z: f64,
-    pub xdot: f64,
-    pub ydot: f64,
-    pub zdot: f64,
+    pub x_dot: f64,
+    pub y_dot: f64,
+    pub z_dot: f64,
 }
 
 #[derive(Debug, PartialEq)]
@@ -109,9 +109,9 @@ pub struct EcefPosition {
     pub x: f64,
     pub y: f64,
     pub z: f64,
-    pub xdot: f64,
-    pub ydot: f64,
-    pub zdot: f64,
+    pub x_dot: f64,
+    pub y_dot: f64,
+    pub z_dot: f64,
 }
 
 #[derive(Debug)]
@@ -131,7 +131,7 @@ pub struct GraphDataPoint {
 }
 
 #[derive(PartialEq, Debug)]
-pub struct TLE {
+pub struct Tle {
     pub name: String,
     pub number: String,
     pub international_designator: String,

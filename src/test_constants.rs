@@ -16,9 +16,9 @@ pub const POSITION_AND_VELOCITY_0: types::PositionAndVelocity = types::PositionA
     x: 2328.97048951,
     y: -5995.22076416,
     z: 1719.97067261,
-    xdot: 2.91207230,
-    ydot: -0.98341546,
-    zdot: -7.09081703,
+    x_dot: 2.91207230,
+    y_dot: -0.98341546,
+    z_dot: -7.09081703,
 };
 
 pub const TOLERANCE: f64 = 1e-3;

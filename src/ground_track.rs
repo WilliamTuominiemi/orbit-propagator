@@ -14,10 +14,10 @@ impl GroundTrack {
 
     pub fn eci_to_geodetic(
         &self,
-        tsince: f64,
+        t_since: f64,
         pav: types::PositionAndVelocity,
     ) -> types::GeodeticPosition {
-        let ecef = self.eci_to_ecef(self.tsince_to_ut1(tsince), pav);
+        let ecef = self.eci_to_ecef(self.tsince_to_ut1(t_since), pav);
 
         let a = constants::XKMPER * 1000.0;
         let f: f64 = 1.0 / 298.257223563;
@@ -69,27 +69,27 @@ impl GroundTrack {
         let z =
             rotation_matrix.m6 * pav.x + rotation_matrix.m7 * pav.y + rotation_matrix.m8 * pav.z;
 
-        let vx_rot = rotation_matrix.m0 * pav.xdot
-            + rotation_matrix.m1 * pav.ydot
-            + rotation_matrix.m2 * pav.zdot;
-        let vy_rot = rotation_matrix.m3 * pav.xdot
-            + rotation_matrix.m4 * pav.ydot
-            + rotation_matrix.m5 * pav.zdot;
-        let vz_rot = rotation_matrix.m6 * pav.xdot
-            + rotation_matrix.m7 * pav.ydot
-            + rotation_matrix.m8 * pav.zdot;
+        let vx_rot = rotation_matrix.m0 * pav.x_dot
+            + rotation_matrix.m1 * pav.y_dot
+            + rotation_matrix.m2 * pav.z_dot;
+        let vy_rot = rotation_matrix.m3 * pav.x_dot
+            + rotation_matrix.m4 * pav.y_dot
+            + rotation_matrix.m5 * pav.z_dot;
+        let vz_rot = rotation_matrix.m6 * pav.x_dot
+            + rotation_matrix.m7 * pav.y_dot
+            + rotation_matrix.m8 * pav.z_dot;
 
-        let xdot = vx_rot + constants::EARTH_ROTATION_RATE * y;
-        let ydot = vy_rot - constants::EARTH_ROTATION_RATE * x;
-        let zdot = vz_rot;
+        let x_dot = vx_rot + constants::EARTH_ROTATION_RATE * y;
+        let y_dot = vy_rot - constants::EARTH_ROTATION_RATE * x;
+        let z_dot = vz_rot;
 
         types::EcefPosition {
             x,
             y,
             z,
-            xdot,
-            ydot,
-            zdot,
+            x_dot,
+            y_dot,
+            z_dot,
         }
     }
 
@@ -217,9 +217,9 @@ impl GroundTrack {
         }
     }
 
-    fn tsince_to_ut1(&self, tsince: f64) -> f64 {
-        let ut1 = self.epoch_into_days_since_J2000();
-        ut1 + (tsince / 1440.0)
+    fn tsince_to_ut1(&self, t_since: f64) -> f64 {
+        let ut1 = self.epoch_into_days_since_j2000();
+        ut1 + (t_since / 1440.0)
     }
 
     fn ecef_velocity_to_enu(
@@ -233,16 +233,16 @@ impl GroundTrack {
         let sin_lon = lon.sin();
         let cos_lon = lon.cos();
 
-        let east = -sin_lon * ecef.xdot + cos_lon * ecef.ydot;
+        let east = -sin_lon * ecef.x_dot + cos_lon * ecef.y_dot;
         let north =
-            -sin_lat * cos_lon * ecef.xdot - sin_lat * sin_lon * ecef.ydot + cos_lat * ecef.zdot;
+            -sin_lat * cos_lon * ecef.x_dot - sin_lat * sin_lon * ecef.y_dot + cos_lat * ecef.z_dot;
         let up =
-            cos_lat * cos_lon * ecef.xdot + cos_lat * sin_lon * ecef.ydot + sin_lat * ecef.zdot;
+            cos_lat * cos_lon * ecef.x_dot + cos_lat * sin_lon * ecef.y_dot + sin_lat * ecef.z_dot;
 
         (east, north, up)
     }
 
-    fn epoch_into_days_since_J2000(&self) -> f64 {
+    fn epoch_into_days_since_j2000(&self) -> f64 {
         let year_str = &self.epoch_year_julian_fraction[0..2];
         let day_of_year_str = &self.epoch_year_julian_fraction[2..];
 
@@ -258,11 +258,11 @@ impl GroundTrack {
         }
 
         let y = (year - 1) as f64;
-        let A = (y / 100.0_f64).floor();
-        let B = 2.0_f64 - A + (A / 4.0_f64).floor();
+        let a = (y / 100.0_f64).floor();
+        let b = 2.0_f64 - a + (a / 4.0_f64).floor();
 
         let jd_jan_0 =
-            (365.25_f64 * (y + 4716.0_f64)).floor() + (30.6001_f64 * 14.0_f64).floor() + B
+            (365.25_f64 * (y + 4716.0_f64)).floor() + (30.6001_f64 * 14.0_f64).floor() + b
                 - 1524.5_f64;
 
         let jd = jd_jan_0 + day_of_year;
@@ -284,14 +284,14 @@ mod tests {
             x: 4263871.9243,
             y: 722591.1075,
             z: 4672986.8878,
-            xdot: 0.0,
-            ydot: 0.0,
-            zdot: 0.0,
+            x_dot: 0.0,
+            y_dot: 0.0,
+            z_dot: 0.0,
         };
 
-        let tsince = 0.0;
+        let t_since = 0.0;
 
-        let geodetic = ground_track.eci_to_geodetic(tsince, pav);
+        let geodetic = ground_track.eci_to_geodetic(t_since, pav);
 
         helpers::assert_approx(geodetic.lat.to_degrees(), 47.301461267437865);
         helpers::assert_approx(geodetic.lon.to_degrees(), -176.36028751239033);
@@ -368,10 +368,10 @@ mod tests {
     }
 
     #[test]
-    fn test_epoch_into_days_since_J2000() {
+    fn test_epoch_into_days_since_j2000() {
         let epoch_year_julian_fraction = "80275.98708465".to_string();
         let ground_track = GroundTrack::new(epoch_year_julian_fraction);
-        let days_since_j2000 = ground_track.epoch_into_days_since_J2000();
+        let days_since_j2000 = ground_track.epoch_into_days_since_j2000();
 
         assert_eq!(days_since_j2000, -7030.512915350031);
     }

@@ -135,7 +135,7 @@ fn format_tle_split_with_negative_exponent(input: &str) -> f64 {
     base * 10.0_f64.powi(-exponent)
 }
 
-pub fn text_to_tle(input: &String) -> types::TLE {
+pub fn text_to_tle(input: &String) -> types::Tle {
     let mut row = 0;
 
     let mut name = "".to_string();
@@ -164,7 +164,7 @@ pub fn text_to_tle(input: &String) -> types::TLE {
     let fdomm = first_row[3];
     let formatted_first_derivative_of_mean_motion = format!("0{fdomm}");
 
-    types::TLE {
+    types::Tle {
         name,
         number: first_row[0].to_string(),
         international_designator: first_row[1].to_string(),
@@ -185,7 +185,7 @@ pub fn text_to_tle(input: &String) -> types::TLE {
     }
 }
 
-fn checksum(input: &String) -> bool {
+fn checksum(input: &str) -> bool {
     let mut row = 0;
     let mut first_row = "".to_string();
     let mut second_row = "".to_string();
@@ -211,7 +211,7 @@ fn checksum(input: &String) -> bool {
         if c == '-' {
             first_row_sum += 1;
         } else if let Some(n) = c.to_digit(10) {
-            first_row_sum += n as u32;
+            first_row_sum += n;
         }
     }
 
@@ -222,12 +222,11 @@ fn checksum(input: &String) -> bool {
         if c == '-' {
             second_row_sum += 1;
         } else if let Some(n) = c.to_digit(10) {
-            second_row_sum += n as u32;
+            second_row_sum += n;
         }
     }
 
-    return (first_row_checksum == first_row_sum % 10)
-        && (second_row_checksum == second_row_sum % 10);
+    (first_row_checksum == first_row_sum % 10) && (second_row_checksum == second_row_sum % 10)
 }
 
 pub fn validate_tle(input: &String) -> types::ValidationResponse {
@@ -245,7 +244,7 @@ pub fn validate_tle(input: &String) -> types::ValidationResponse {
     let mut first_row_columns = 0;
     let mut second_row_columns = 0;
 
-    if input.chars().nth(0) == Some('1') {
+    if input.starts_with('1') {
         valid = false;
         message = "Satellite name is missing, needs to be added before first row".to_string();
     }
@@ -291,7 +290,7 @@ pub fn validate_tle(input: &String) -> types::ValidationResponse {
 
         if result.is_err() {
             valid = false;
-            message = "Failed to parse TLE data".to_string();
+            message = "Failed to parse tle data".to_string();
         }
     }
 
@@ -300,7 +299,7 @@ pub fn validate_tle(input: &String) -> types::ValidationResponse {
 
         if !check {
             valid = false;
-            message = "TLE checksum failed".to_string();
+            message = "tle checksum failed".to_string();
         }
     }
 
@@ -421,7 +420,7 @@ mod tests {
 
         assert_eq!(
             tle,
-            types::TLE {
+            types::Tle {
                 name: "SGP4(SGP4)".to_string(),
                 number: "88888U".to_string(),
                 international_designator: "80081S".to_string(),
@@ -452,7 +451,7 @@ mod tests {
 
         assert_eq!(
             tle,
-            types::TLE {
+            types::Tle {
                 name: "ISS(ZARYA)".to_string(),
                 number: "25544U".to_string(),
                 international_designator: "98067A".to_string(),
