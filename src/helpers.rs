@@ -55,7 +55,7 @@ pub fn calculate_c_constants(
     sinio: f64,
     eo: f64,
     omegao: f64,
-    mmasmao: &MeanMotionAndSemiMajorAxisOutput,
+    mmasmao: &types::MeanMotionAndSemiMajorAxisOutput,
 ) -> types::CConstants {
     let x1mth2 = 1.0 - mmasmao.theta2;
     let etasq = eta * eta;
@@ -411,7 +411,7 @@ mod tests {
         let betao2 = 0.99992477733639;
         let theta2 = 0.08701479420479;
 
-        let mmasmao = MeanMotionAndSemiMajorAxisOutput {
+        let mmasmao = types::MeanMotionAndSemiMajorAxisOutput {
             xnodp,
             aodp,
             betao2,
