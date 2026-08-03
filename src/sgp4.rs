@@ -29,7 +29,7 @@ pub struct Sgp4 {
     t3cof: f64,
     t4cof: f64,
     t5cof: f64,
-    mmasmao: types::MeanMotionAndSemimajorAxisOutput,
+    mmasmao: types::MeanMotionAndSemiMajorAxisOutput,
 }
 
 impl Sgp4 {
@@ -58,18 +58,14 @@ impl Sgp4 {
         let c_constants = helpers::calculate_c_constants(
             eta,
             coef,
-            mmasmao.xnodp,
-            mmasmao.aodp,
             eeta,
             tsi,
-            mmasmao.x3thm1,
             tle.drag_term,
             a3ovk2,
             sinio,
             tle.eccentricity,
-            mmasmao.betao2,
-            mmasmao.theta2,
             omegao,
+            &mmasmao,
         );
 
         let theta4 = mmasmao.theta2 * mmasmao.theta2;

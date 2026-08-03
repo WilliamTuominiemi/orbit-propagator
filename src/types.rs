@@ -1,4 +1,4 @@
-pub struct MeanMotionAndSemimajorAxisOutput {
+pub struct MeanMotionAndSemiMajorAxisOutput {
     pub xnodp: f64,
     pub aodp: f64,
     pub betao2: f64,

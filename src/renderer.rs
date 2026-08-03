@@ -1,8 +1,7 @@
 use eframe::egui;
 use eframe::egui::Color32;
 use egui::Vec2;
-use egui_plot::Line;
-use egui_plot::{Plot, PlotBounds, PlotPoints, Points};
+use egui_plot::{Line, Plot, PlotBounds, PlotPoints, Points};
 
 use crate::{helpers, test_constants, types};
 
@@ -13,7 +12,7 @@ pub struct Renderer {
     t_until_str: String,
     tle_validation_error: String,
     data_points: Vec<types::GraphDataPoint>,
-    pub compute_points: fn(&types::Tle, i32) -> Vec<types::GraphDataPoint>,
+    compute_points: fn(&types::Tle, i32) -> Vec<types::GraphDataPoint>,
     t_since: i32,
 }
 

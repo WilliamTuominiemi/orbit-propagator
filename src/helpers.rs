@@ -4,7 +4,7 @@ pub fn recover_original_mean_motion_and_semimajor_axis(
     xno: f64,
     xincl: f64,
     eo: f64,
-) -> types::MeanMotionAndSemimajorAxisOutput {
+) -> types::MeanMotionAndSemiMajorAxisOutput {
     let a1 = (constants::XKE / xno).powf(constants::TOTHRD);
     let cosio = xincl.cos();
     let theta2 = cosio * cosio;
@@ -18,7 +18,7 @@ pub fn recover_original_mean_motion_and_semimajor_axis(
     let xnodp = xno / (1.0 + delo);
     let aodp = ao / (1.0 - delo);
 
-    types::MeanMotionAndSemimajorAxisOutput {
+    types::MeanMotionAndSemiMajorAxisOutput {
         xnodp,
         aodp,
         betao2,
@@ -48,40 +48,39 @@ pub fn adjust_atmospheric_drag_for_low_orbit(aodp: f64, eo: f64) -> (f64, f64) {
 pub fn calculate_c_constants(
     eta: f64,
     coef: f64,
-    xnodp: f64,
-    aodp: f64,
     eeta: f64,
     tsi: f64,
-    x3thm1: f64,
     bstar: f64,
     a3ovk2: f64,
     sinio: f64,
     eo: f64,
-    betao2: f64,
-    theta2: f64,
     omegao: f64,
+    mmasmao: &MeanMotionAndSemiMajorAxisOutput,
 ) -> types::CConstants {
-    let x1mth2 = 1.0 - theta2;
+    let x1mth2 = 1.0 - mmasmao.theta2;
     let etasq = eta * eta;
     let psisq = (1.0 - etasq).abs();
     let coef1 = coef / psisq.powf(3.5);
 
     let c2 = coef1
-        * xnodp
-        * (aodp * (1.0 + 1.5 * etasq + eeta * (4.0 + etasq))
-            + 0.75 * constants::CK2 * tsi / psisq * x3thm1 * (8.0 + 3.0 * etasq * (8.0 + etasq)));
+        * mmasmao.xnodp
+        * (mmasmao.aodp * (1.0 + 1.5 * etasq + eeta * (4.0 + etasq))
+            + 0.75 * constants::CK2 * tsi / psisq
+                * mmasmao.x3thm1
+                * (8.0 + 3.0 * etasq * (8.0 + etasq)));
     let c1 = bstar * c2;
-    let c3 = coef * tsi * a3ovk2 * xnodp * constants::AE * sinio / eo;
+    let c3 = coef * tsi * a3ovk2 * mmasmao.xnodp * constants::AE * sinio / eo;
     let c4 = 2.0
-        * xnodp
+        * mmasmao.xnodp
         * coef1
-        * aodp
-        * betao2
+        * mmasmao.aodp
+        * mmasmao.betao2
         * (eta * (2.0 + 0.5 * etasq) + eo * (0.5 + 2.0 * etasq)
-            - 2.0 * constants::CK2 * tsi / (aodp * psisq)
-                * (-3.0 * x3thm1 * (1.0 - 2.0 * eeta + etasq * (1.5 - 0.5 * eeta))
+            - 2.0 * constants::CK2 * tsi / (mmasmao.aodp * psisq)
+                * (-3.0 * mmasmao.x3thm1 * (1.0 - 2.0 * eeta + etasq * (1.5 - 0.5 * eeta))
                     + 0.75 * x1mth2 * (2.0 * etasq - eeta * (1.0 + etasq)) * (2.0 * omegao).cos()));
-    let c5 = 2.0 * coef1 * aodp * betao2 * (1.0 + 2.75 * (etasq + eeta) + eeta * etasq);
+    let c5 =
+        2.0 * coef1 * mmasmao.aodp * mmasmao.betao2 * (1.0 + 2.75 * (etasq + eeta) + eeta * etasq);
 
     types::CConstants { c1, c2, c3, c4, c5 }
 }
@@ -412,21 +411,27 @@ mod tests {
         let betao2 = 0.99992477733639;
         let theta2 = 0.08701479420479;
 
+        let mmasmao = MeanMotionAndSemiMajorAxisOutput {
+            xnodp,
+            aodp,
+            betao2,
+            betao: 0.0,
+            x3thm1,
+            theta2,
+            cosio: 0.0,
+        };
+
         let c_constants = calculate_c_constants(
             eta,
             coef,
-            xnodp,
-            aodp,
             eeta,
             tsi,
-            x3thm1,
             test_constants::BSTAR,
             a3ovk2,
             sinio,
             test_constants::EO,
-            betao2,
-            theta2,
             test_constants::OMEGAO,
+            &mmasmao,
         );
 
         assert_eq!(c_constants.c1, 2.3338044215116538e-8);
