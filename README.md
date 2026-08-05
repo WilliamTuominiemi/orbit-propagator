@@ -14,6 +14,12 @@ The X, Y and Z are in ECI format, which can't be displayed on a 2D graph. Also t
 
 They are converted ECI [-> ECEF](https://space.stackexchange.com/questions/38807/transform-eci-to-ecef) [-> Geodetic](https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#The_application_of_Ferrari's_solution)
 
+## Usage
+
+1. Input into the field a valid TLE. 
+2. Set the tracking time period.
+3. Update graph
+4. Adjust the minutes since start timer to see the orbit
 
 ## Sample test case
 
@@ -28,16 +34,3 @@ SGP4 (SGP4)
 1 88888U 80081S 80275.98708465 .00073094 13844-3 66816-4 0 6
 2 88888 72.8435 115.9689 0086731 52.6988 110.5714 16.05824718105
 ```
-
-### Output values
-
-When TSINCE: 0, so the first dot on the graph.
-
-| Variable  | Value         |
-| --------- | ------------- |
-| X         | 2328.97048951 |
-| Y         |-5995.22076416 |
-| Z         | 1719.97067261 |
-| XDOT      | 2.91207230    |
-| YDOT      | -0.98341546   |
-| ZDOT      | -7.09081703   |
